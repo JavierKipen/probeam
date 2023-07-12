@@ -41,4 +41,4 @@ python3 scripts/GenPlots.py %Generates the figures of the paper with the results
 ```
 # Reusing the code
 
-Upon use of this code for research purposes, please cite [our paper](https://docs.anaconda.com/free/anaconda/install/linux/)
+Upon use of this code for research purposes, please cite our paper.
