@@ -88,7 +88,7 @@ void CalculationsWrapper::obtainKDyeLoss(State& s, float obs[N_COLORS])
 			L1dif_j = abs((obs[1] / MU) - j);
 			for (unsigned int k = 0; k < s.K[2] + 1; k++) {
 				L1dif_k = abs((obs[2] / MU) - k);
-				if ((L1dif_i + L1dif_j + L1dif_k) < l1normMaxDyeLoss) //This K can give an observation probability which is not negligible
+				if ((L1dif_i + L1dif_j + L1dif_k) < l1normMaxDyeLoss || (i == s.K[0] && j==s.K[1] && k==s.K[2]) ) //This K can give an observation probability which is not negligible, but also considers same K to always mantain the number of states.
 				{
 					comb_factor = (float)nChoosek(s.K[0], i) * nChoosek(s.K[1], j) * nChoosek(s.K[2], k); //Combinational factor of picking which dyes were not attached
 					dif = totalInitDyes - i - j - k;

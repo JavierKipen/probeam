@@ -1,2 +1,10 @@
-data/
-ext/
+
+ext/*
+bin/probeam
+bin/whatprot
+ext/whatprot
+data/*
+!data/seq-params.json
+!data/UP000005640_9606.fasta
+!data/LongDatasets/Notes.txt
+!data/NormDatasets/Notes.txt

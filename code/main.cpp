@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			Decoder decoder(argParser.nBeam);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
 			timeRunAndSave(decoder, dataIO);
-			//checkReducedData(decoder, dataIO, 1000);
+			//checkReducedData(decoder, dataIO, 2000);
 			//checkWholeDataset(decoder, dataIO);
 		}
 		else
@@ -138,6 +138,8 @@ void timeRunAndSave(Decoder& dec, DataIO& dataIO)
 	auto start = chrono::high_resolution_clock::now();
 	for (unsigned int i = 0; i < dataIO.reads.size(); i++)
 	{
+		//if (i % 10 == 0)
+		//	cout << i << endl; //1870 explodes
 		auxRes = dec.decode((float(*)[3])dataIO.reads[i].data());
 		yPred.push_back(auxRes.first);
 		yPredProb.push_back(auxRes.second);

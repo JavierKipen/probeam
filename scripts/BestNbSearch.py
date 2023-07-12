@@ -34,14 +34,14 @@ def get_proc_time_beam(outputBeam):
     return computing_time;
 
 n_proteins=20000; #Only on the 20k dataset
-n_beams=[2,3,4,5,6,7,8,9,10,12,15,20,40,60,80,100];
+n_beams=[2,3,4,5,6,7,8,9,10,12,15,20,40];
 
-path_datasets_figure="../Own/HMM_modif/Datasets/ForPaper/"
+path_datasets_figure=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/NormDatasets/";
+
 path_datasets_figure_common_files= path_datasets_figure +"CommonFiles/"
 prot_fasta=path_datasets_figure_common_files+"UP000005640_9606.fasta"
 seq_params_path= path_datasets_figure_common_files + "seq-params.json"
 
-full_path_to_ds="~/Fluoroseq/Own/HMM_modif/Datasets/ForPaper/"
 
 protein_folder=path_datasets_figure+str(n_proteins)+"Prot/"
 
@@ -55,7 +55,7 @@ for n_beam in n_beams:
     true_ids_path=protein_folder+"true-ids.tsv";
     predictions_hybrid_path = protein_folder+"predictionsHybrid.csv"
     
-    cmd_classify_beam = "./../Own/HMM_modif/LowLevel/Rewriting/BeamDec " + full_path_to_ds + str(n_proteins)+"Prot/"+ " -b "+str(n_beam);
+    cmd_classify_beam = "./bin/probeam " + path_datasets_figure + str(n_proteins)+"Prot/"+ " -b "+str(n_beam);
     
     #output=subprocess.run(cmd_classify_hybrid, shell=True, check=True)
     outputBeam=subprocess.check_output(cmd_classify_beam, shell=True)

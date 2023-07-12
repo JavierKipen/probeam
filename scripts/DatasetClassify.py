@@ -34,46 +34,46 @@ def get_proc_time_beam(outputBeam):
     computing_time=float(substr[:substr.find(" ")])
     return computing_time;
 
-n_proteins=[10,20,50,100,200,500,1000,2000,5000,10000,20000];
+n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
 #n_proteins=[20000];
+n_beams=[3,15];
 
-path_datasets_figure="../Own/HMM_modif/Datasets/ForPaper/"
-path_datasets_figure_common_files= path_datasets_figure +"CommonFiles/"
+
+path_data=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/";
+full_path_to_ds=path_data+"NormDatasets/";
+path_datasets_figure_common_files= path_data +"common/"
 prot_fasta=path_datasets_figure_common_files+"UP000005640_9606.fasta"
 seq_params_path= path_datasets_figure_common_files + "seq-params.json"
 
-full_path_to_ds="~/Fluoroseq/Own/HMM_modif/Datasets/ForPaper/"
-
 cmd_set_threads="export OMP_NUM_THREADS=1";
-subprocess.run(cmd_set_threads, shell=True, check=True) ##Sets to only one thread running
 
 for n in n_proteins:
     print("Number of proteins: "+ str(n))
-    protein_folder=path_datasets_figure+str(n)+"Prot/"
+    protein_folder=full_path_to_ds+str(n)+"Prot/"
     dye_seqs_path=protein_folder+"dye-seqs.tsv";
     dye_tracks_path=protein_folder+"dye-tracks.tsv";
     radiometries_path=protein_folder+"radiometries.tsv";
     true_ids_path=protein_folder+"true-ids.tsv";
     predictions_hybrid_path = protein_folder+"predictionsHybrid.csv"
-    
-    cmd_classify_hybrid = "./../cc_code/bin/release/whatprot classify hybrid -k 10000 -s 0.5 -H 1000 -p 5 -P " + seq_params_path + " -S " + dye_seqs_path + " -T " +dye_tracks_path + " -R " + radiometries_path + " -Y " + predictions_hybrid_path;
-    
-    cmd_classify_beam = "./../Own/HMM_modif/LowLevel/Rewriting/BeamDec " + full_path_to_ds + str(n)+"Prot/";
-    
+    cmd_classify_hybrid = "./bin/whatprot classify hybrid -k 10000 -s 0.5 -H 1000 -p 5 -P " + seq_params_path + " -S " + dye_seqs_path + " -T " +dye_tracks_path + " -R " + radiometries_path + " -Y " + predictions_hybrid_path;
     #output=subprocess.run(cmd_classify_hybrid, shell=True, check=True)
     outputHybrid=subprocess.check_output("export OMP_NUM_THREADS=1\n"+cmd_classify_hybrid, shell=True)
     computing_time_hybrid=get_proc_time(outputHybrid)
     hybrid_msg="Hybrid computing total time (seconds): "+ str(computing_time_hybrid);
     print(str(outputHybrid))
-    outputBeam=subprocess.check_output(cmd_classify_beam, shell=True)
-    computing_time_beam=get_proc_time_beam(outputBeam)
-    beam_msg="Beam computing time per read (miroseconds): "+ str(computing_time_beam)
-    print(str(outputBeam))
+    beam_msgs=[];
+    for n_beam in n_beams:
+        cmd_classify_beam = "./bin/probeam " + full_path_to_ds + str(n)+"Prot/"+ " -b "+str(n_beam)
+    #output=subprocess.run(cmd_classify_hybrid, shell=True, check=True)
+        outputBeam=subprocess.check_output(cmd_classify_beam, shell=True)
+        computing_time_beam=get_proc_time_beam(outputBeam)
+        beam_msgs.append(str(n_beam) + "Beam computing time per read (miroseconds): "+ str(computing_time_beam));
+        print(str(outputBeam))
     with open(protein_folder+"timing-results.txt", 'w') as f:
         f.write(hybrid_msg)
         f.write('\n')
-        f.write(beam_msg)
-        f.write('\n')
-    
+        for beam_msg in beam_msgs:
+            f.write(beam_msg)
+            f.write('\n')
     #subprocess.run(cmd_classify_beam, shell=True, check=True)
     #subprocess.run(cmd_sim_rad)
