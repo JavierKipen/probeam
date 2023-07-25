@@ -36,7 +36,7 @@ private:
 	vector<unsigned long> dyeSeqsStartIdxsInMem; //Saves ints of where dye seqs start
 	vector<float> relProbs;
 	vector<unsigned int> dyeSeqsIdxOUT; //Dye sequences idxs used in the classification. (in the code the idx represent the sapce on the vector
-
+	vector<unsigned int> dyeSeqsCounts;
 	float dyeSeqsProbRelOut[N_MAX_DYESEQS_IN_STATE]; //Variables for decoding most likely output
 	unsigned int dyeSeqsProbRelOutCount;
 	void getRelProbs(State& s);

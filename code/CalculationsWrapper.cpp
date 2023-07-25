@@ -30,6 +30,7 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 	KProbsDyeLoss.reserve(100);
 	relProbs.reserve(relCounts.size());
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
+	dyeSeqsCounts = relCounts;
 	reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
 	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs,nBeam);
 }
@@ -39,10 +40,19 @@ void CalculationsWrapper::reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsign
 	float normFactorRel = 0;
 	unsigned long countChars = 0;
 	//Reformatting data.
+	
 	for (unsigned int i = 0; i < relCounts.size(); i++)
-		normFactorRel += relCounts[i];
-	for (unsigned int i = 0; i < relCounts.size(); i++)
-		relProbs.push_back(((float)relCounts[i]) / normFactorRel);
+	{
+		float aux = 1.0f / relCounts[i];
+		relProbs.push_back(aux);
+		normFactorRel += aux;
+	}
+		
+
+	for (unsigned int i = 0; i < relProbs.size(); i++)
+		relProbs[i] /= normFactorRel;
+
+
 
 	for (unsigned int i = 0; i < dyeSeqs.size(); i++)
 	{
@@ -116,7 +126,7 @@ void CalculationsWrapper::getInfoForEdman(State& s)
 		dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
 		dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
 		dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
-		currDyeProb = relProbs[dyeSeqIdx];
+		currDyeProb = relProbs[dyeSeqIdx]* dyeSeqsCounts[dyeSeqIdx];
 		if (dyeSeqLen-1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
 		{
 			probFound = true;
