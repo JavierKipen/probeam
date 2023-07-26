@@ -237,7 +237,7 @@ void  CalculationsWrapper::getRelProbs(State& s)
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 	{
 		dyeSeqsProbRelOut[i] = relProbs[s.dyeSeqsIdxs[i]];
-		normFactor += dyeSeqsProbRelOut[i];
+		normFactor += dyeSeqsProbRelOut[i] * dyeSeqsCounts[i];
 	}
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 		dyeSeqsProbRelOut[i] /= normFactor;
