@@ -32,7 +32,7 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
 	dyeSeqsCounts = relCounts;
 	reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
-	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs,nBeam);
+	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs ,&dyeSeqsCounts, nBeam);
 }
 
 void CalculationsWrapper::reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts)
@@ -126,7 +126,7 @@ void CalculationsWrapper::getInfoForEdman(State& s)
 		dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
 		dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
 		dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
-		currDyeProb = relProbs[dyeSeqIdx]* dyeSeqsCounts[dyeSeqIdx];
+		currDyeProb = relProbs[dyeSeqIdx]* dyeSeqsCounts[dyeSeqIdx]; //It is the same as having 1 because of the normalization!
 		if (dyeSeqLen-1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
 		{
 			probFound = true;
@@ -212,7 +212,7 @@ pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State
 			if (it == possibleOutputs.end()) //Idx of dye seq not found
 				possibleOutputs[dyeSeqIdx] = finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx];
 			else
-				possibleOutputs[dyeSeqIdx] += finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx];
+				possibleOutputs[dyeSeqIdx] += finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx] ;
 		}
 
 	}
@@ -237,7 +237,7 @@ void  CalculationsWrapper::getRelProbs(State& s)
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 	{
 		dyeSeqsProbRelOut[i] = relProbs[s.dyeSeqsIdxs[i]];
-		normFactor += dyeSeqsProbRelOut[i] * dyeSeqsCounts[i];
+		normFactor += dyeSeqsProbRelOut[i] * dyeSeqsCounts[i]; //
 	}
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 		dyeSeqsProbRelOut[i] /= normFactor;

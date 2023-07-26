@@ -25,7 +25,7 @@ class InitStates
 {
 public:
 	InitStates();
-	void init(vector<char> *dyeSeqsTogheter, vector<unsigned long> *dyeSeqsStartIdxsInMem, vector<float> *relProbs,unsigned int nBeamIn);
+	void init(vector<char> *dyeSeqsTogheter, vector<unsigned long> *dyeSeqsStartIdxsInMem, vector<float> *relProbs, vector<unsigned int>* dyeSeqsCounts, unsigned int nBeamIn);
 	void getFirstMostLikelyStates(vector<State>* outMostLikely, vector<float>* outProbsNorm,  float obs[N_COLORS]);
 	void clear();
 private:
@@ -34,6 +34,7 @@ private:
 	vector<char> *dyeSeqsTogheter; //All dye sequences concatenated in memory. To read dye sequence 1, dyeSeqsTogheter[dyeSeqsStartIdxsInMem[i]];
 	vector<unsigned long> *dyeSeqsStartIdxsInMem; //Saves ints of where dye seqs start
 	vector<float> *relProbs;
+	vector<unsigned int>* dyeSeqsCountsp;
 	vector<unsigned int> dyeSeqsIdxOUT; //Dye sequences idxs used in the classification. (in the code the idx represent the sapce on the vector
 	//Ideal init states and their probs
 	vector<float> initIdealStatesProb; 

@@ -17,13 +17,14 @@ InitStates::InitStates()
 }
 
 
-void InitStates::init(vector<char> *dyeSeqsTogheterO, vector<unsigned long>* dyeSeqsStartIdxsInMemO, vector<float>* relProbsO,unsigned int nBeamIn)
+void InitStates::init(vector<char> *dyeSeqsTogheterO, vector<unsigned long>* dyeSeqsStartIdxsInMemO, vector<float>* relProbsO, vector<unsigned int>* dyeSeqsCounts, unsigned int nBeamIn)
 {
 	nDyeSeqs = dyeSeqsStartIdxsInMemO->size();
 	dyeSeqsTogheter = dyeSeqsTogheterO;
 	dyeSeqsStartIdxsInMem = dyeSeqsStartIdxsInMemO;
 	relProbs = relProbsO;
 	nBeam = nBeamIn;
+	dyeSeqsCountsp = dyeSeqsCounts;
 
 	createInitIdealStates();
 #ifdef WHOLE_CALC_INITIAL
@@ -54,7 +55,7 @@ void InitStates::createInitIdealStates()
 			}
 			charCount++;
 		}
-		appendForIdInSt(currN, dyeSeqCount, (*relProbs)[dyeSeqCount]);
+		appendForIdInSt(currN, dyeSeqCount, (*relProbs)[dyeSeqCount] * (*dyeSeqsCountsp)[dyeSeqCount]);
 		dyeSeqCount++; charCount++;
 	}
 	for (unsigned int i = 0; i < initIdealStatesProb.size(); i++)

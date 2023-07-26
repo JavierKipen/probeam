@@ -5,7 +5,7 @@
 #include "StateFunctions.h"
 #include <utility> 
 
-#define NBEAM_DEFAULT 10
+#define NBEAM_DEFAULT 15
 #define N_CAND_STATE_RESERVE 1000 //Number of states reserved for candidate states finding
 
 
