@@ -28,6 +28,7 @@ public:
 	void clear();
 	IFED infoEdman;
 private:
+	float n_peptides;
 	InitStates is; // To obtain the most likely first states.
 	void reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& dyeSeqsCounts); //formats to chunk of dye sequences togheter en memory, indexes and chunk of probabilities in memory.
 	unsigned int nDyeSeqs;

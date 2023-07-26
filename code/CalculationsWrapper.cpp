@@ -37,20 +37,19 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 
 void CalculationsWrapper::reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts)
 {
-	float normFactorRel = 0;
+	n_peptides = 0;
 	unsigned long countChars = 0;
 	//Reformatting data.
 	
 	for (unsigned int i = 0; i < relCounts.size(); i++)
 	{
-		float aux = 1.0f / relCounts[i];
-		relProbs.push_back(aux);
-		normFactorRel += aux;
+		relProbs.push_back(relCounts[i]);
+		n_peptides += relCounts[i];
 	}
 		
 
 	for (unsigned int i = 0; i < relProbs.size(); i++)
-		relProbs[i] /= normFactorRel;
+		relProbs[i] /= n_peptides;
 
 
 
@@ -126,7 +125,7 @@ void CalculationsWrapper::getInfoForEdman(State& s)
 		dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
 		dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
 		dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
-		currDyeProb = relProbs[dyeSeqIdx]* dyeSeqsCounts[dyeSeqIdx]; //It is the same as having 1 because of the normalization!
+		currDyeProb = relProbs[dyeSeqIdx]; 
 		if (dyeSeqLen-1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
 		{
 			probFound = true;
@@ -236,8 +235,8 @@ void  CalculationsWrapper::getRelProbs(State& s)
 	float normFactor=0;
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 	{
-		dyeSeqsProbRelOut[i] = relProbs[s.dyeSeqsIdxs[i]];
-		normFactor += dyeSeqsProbRelOut[i] * dyeSeqsCounts[i]; //
+		dyeSeqsProbRelOut[i] = 1/n_peptides;
+		normFactor += relProbs[s.dyeSeqsIdxs[i]]; //
 	}
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 		dyeSeqsProbRelOut[i] /= normFactor;

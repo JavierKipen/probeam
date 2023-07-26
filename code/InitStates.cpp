@@ -55,7 +55,7 @@ void InitStates::createInitIdealStates()
 			}
 			charCount++;
 		}
-		appendForIdInSt(currN, dyeSeqCount, (*relProbs)[dyeSeqCount] * (*dyeSeqsCountsp)[dyeSeqCount]);
+		appendForIdInSt(currN, dyeSeqCount, (*relProbs)[dyeSeqCount] );
 		dyeSeqCount++; charCount++;
 	}
 	for (unsigned int i = 0; i < initIdealStatesProb.size(); i++)
