@@ -18,12 +18,18 @@ datasets_path="data/NormDatasets/"
 
 n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
 
-def get_crossval_acc(true_ids, y_pred,n_folds=10):
+def get_crossval_acc(true_ids, y_pred,dye_seqs_map,n_folds=10):
     folds_ids=np.array_split(true_ids, n_folds)
     folds_y_pred=np.array_split(y_pred, n_folds)
     accs=[]
     for i in range(n_folds):
-        accs.append(metrics.accuracy_score(folds_ids[i], folds_y_pred[i]))
+        total_acc = 0
+        for j in range(len(folds_ids[i])):
+            if folds_ids[i][j] == folds_y_pred[i][j]:
+                total_acc = total_acc + (1/dye_seqs_map[folds_ids[i][j]])
+        total_acc = total_acc/len(folds_ids[i]);
+        accs.append(total_acc)
+        #accs.append(metrics.accuracy_score(folds_ids[i], folds_y_pred[i]))
     return np.mean(accs),np.std(accs)/np.sqrt(n_folds)
 
 ###Figure 1 ####
@@ -55,10 +61,14 @@ for n_prot in n_proteins:
     predictions_beam_2 = pd.read_csv(curr_ds+"BeamSearchPred"+str(nb2)+".csv")[' best_pep_iz'].to_numpy();
     predictions_hybrid = pd.read_csv(curr_ds+"predictionsHybrid.csv")['best_pep_iz'].to_numpy();
     predictions_knn = pd.read_csv(curr_ds+"predictionskNN.csv")['best_pep_iz'].to_numpy();
-    mean_acc_beam_1, mean_acc_beam_std_1 = get_crossval_acc(true_ids,predictions_beam_1)
-    mean_acc_beam_2, mean_acc_beam_std_2 = get_crossval_acc(true_ids,predictions_beam_2)
-    mean_acc_hybrid, mean_acc_hybrid_std = get_crossval_acc(true_ids,predictions_hybrid)
-    mean_acc_knn, mean_acc_knn_std = get_crossval_acc(true_ids,predictions_knn)
+    
+    dye_seqs=pd.read_csv(curr_ds+"dye-seqs.tsv", sep='\t', skiprows=2,header=None)
+    dye_seqs_map = {dye_seqs.loc[i,2]:dye_seqs.loc[i,1] for i in range(len(dye_seqs))} #Maps pep id to count of peptides same pep id
+
+    mean_acc_beam_1, mean_acc_beam_std_1 = get_crossval_acc(true_ids,predictions_beam_1,dye_seqs_map)
+    mean_acc_beam_2, mean_acc_beam_std_2 = get_crossval_acc(true_ids,predictions_beam_2,dye_seqs_map)
+    mean_acc_hybrid, mean_acc_hybrid_std = get_crossval_acc(true_ids,predictions_hybrid,dye_seqs_map)
+    mean_acc_knn, mean_acc_knn_std = get_crossval_acc(true_ids,predictions_knn,dye_seqs_map)
     mean_accs_beam_1.append(mean_acc_beam_1);mean_accs_beam_std_1.append(mean_acc_beam_std_1)
     mean_accs_beam_2.append(mean_acc_beam_2);mean_accs_beam_std_2.append(mean_acc_beam_std_2)
     mean_accs_hybrid.append(mean_acc_hybrid);mean_accs_hybrid_std.append(mean_acc_hybrid_std)
