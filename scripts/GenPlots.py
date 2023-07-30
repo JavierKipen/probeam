@@ -31,61 +31,69 @@ def get_crossval_acc(true_ids, y_pred,n_folds=10):
 def get_timing_res(path,n_samples):
     f = open(path, "r")
     msg_hybrid=f.readline();
+    msg_kNN=f.readline();
     msg_beam_1=f.readline();
     msg_beam_2=f.readline();
     nb1=int(msg_beam_1[:1])
     nb2=int(msg_beam_2[:2])
     time_hybrid = float(msg_hybrid[msg_hybrid.find(":")+2:-1])/n_samples
+    time_knn = float(msg_kNN[msg_kNN.find(":")+2:-1])/n_samples
     time_beam_1 = float(msg_beam_1[msg_beam_1.find(":")+2:-1])*1e-6
     time_beam_2 = float(msg_beam_2[msg_beam_2.find(":")+2:-1])*1e-6
-    return time_beam_1,time_beam_2,time_hybrid,nb1,nb2
+    return time_beam_1,time_beam_2,time_hybrid,time_knn,nb1,nb2
 
 mean_accs_beam_1=[]; mean_accs_beam_std_1=[];
 mean_accs_beam_2=[]; mean_accs_beam_std_2=[];
 mean_accs_hybrid=[]; mean_accs_hybrid_std=[];
-times_beam_1=[];times_beam_2=[];times_hybrid=[];
+mean_accs_knn=[]; mean_accs_knn_std=[];
+times_beam_1=[];times_beam_2=[];times_hybrid=[];times_knn=[];
 for n_prot in n_proteins:
     curr_ds=datasets_path+str(n_prot)+"Prot/"
     true_ids =  pd.read_csv(curr_ds+'true-ids.tsv', sep='\t').to_numpy().flatten()
-    time_beam_1,time_beam_2,time_hybrid,nb1,nb2=get_timing_res(curr_ds+"timing-results.txt",len(true_ids));
+    time_beam_1,time_beam_2,time_hybrid,time_knn,nb1,nb2=get_timing_res(curr_ds+"timing-results.txt",len(true_ids));
     predictions_beam_1 = pd.read_csv(curr_ds+"BeamSearchPred"+str(nb1)+".csv")[' best_pep_iz'].to_numpy();
     predictions_beam_2 = pd.read_csv(curr_ds+"BeamSearchPred"+str(nb2)+".csv")[' best_pep_iz'].to_numpy();
     predictions_hybrid = pd.read_csv(curr_ds+"predictionsHybrid.csv")['best_pep_iz'].to_numpy();
+    predictions_knn = pd.read_csv(curr_ds+"predictionskNN.csv")['best_pep_iz'].to_numpy();
     mean_acc_beam_1, mean_acc_beam_std_1 = get_crossval_acc(true_ids,predictions_beam_1)
     mean_acc_beam_2, mean_acc_beam_std_2 = get_crossval_acc(true_ids,predictions_beam_2)
     mean_acc_hybrid, mean_acc_hybrid_std = get_crossval_acc(true_ids,predictions_hybrid)
+    mean_acc_knn, mean_acc_knn_std = get_crossval_acc(true_ids,predictions_knn)
     mean_accs_beam_1.append(mean_acc_beam_1);mean_accs_beam_std_1.append(mean_acc_beam_std_1)
     mean_accs_beam_2.append(mean_acc_beam_2);mean_accs_beam_std_2.append(mean_acc_beam_std_2)
     mean_accs_hybrid.append(mean_acc_hybrid);mean_accs_hybrid_std.append(mean_acc_hybrid_std)
-    times_beam_1.append(time_beam_1);times_beam_2.append(time_beam_2);times_hybrid.append(time_hybrid)
+    mean_accs_knn.append(mean_acc_knn);mean_accs_knn_std.append(mean_acc_knn_std)
+    times_beam_1.append(time_beam_1);times_beam_2.append(time_beam_2);times_hybrid.append(time_hybrid);times_knn.append(time_knn);
     
 plt.rcParams.update({
     "text.usetex": True})
 plt.figure(dpi=300)
-plt.errorbar(n_proteins,mean_accs_beam_1,yerr=mean_accs_beam_std_1,label=r'Beam $\textrm{N}_{\textrm{B}}=3$')
-plt.errorbar(n_proteins,mean_accs_beam_2,yerr=mean_accs_beam_std_2,label=r'Beam $\textrm{N}_{\textrm{B}}=15$')
+plt.errorbar(n_proteins,mean_accs_beam_1,yerr=mean_accs_beam_std_1,label=r'Beam $\textrm{N}_{\textrm{B}}=7$')
+plt.errorbar(n_proteins,mean_accs_beam_2,yerr=mean_accs_beam_std_2,label=r'Beam $\textrm{N}_{\textrm{B}}=20$')
 plt.errorbar(n_proteins,mean_accs_hybrid,yerr=mean_accs_hybrid_std,label="Whatprot")
+plt.errorbar(n_proteins,mean_accs_knn,yerr=mean_accs_knn_std,label="kNN")
 plt.legend()
 plt.xscale("log")
 plt.xlabel("Number of proteins")
 plt.ylabel("Accuracy")
 plt.grid()
-plt.savefig("results/Accuracy.eps")
+plt.savefig("results/Accuracy.png")
 #plt.show()
 
 plt.figure(dpi=300)
-plt.loglog(n_proteins,times_beam_1,label=r'Beam $\textrm{N}_{\textrm{B}}=3$')
-plt.loglog(n_proteins,times_beam_2,label=r'Beam $\textrm{N}_{\textrm{B}}=15$')
+plt.loglog(n_proteins,times_beam_1,label=r'Beam $\textrm{N}_{\textrm{B}}=7$')
+plt.loglog(n_proteins,times_beam_2,label=r'Beam $\textrm{N}_{\textrm{B}}=20$')
 plt.loglog(n_proteins,times_hybrid,label="Whatprot")
+plt.loglog(n_proteins,times_knn,label="kNN")
 plt.legend()
 plt.xlabel("Number of proteins")
 plt.ylabel("Run time for a single read [s]")
 plt.grid()
-plt.savefig("results/Runtime.eps")
+plt.savefig("results/Runtime.png")
 
 ###Figure 2 ####
 #ipdb.set_trace()
-
+"""
 dataset_thousand_path=datasets_path+"1000Prot/";
 
 true_ids =  pd.read_csv(dataset_thousand_path+'true-ids.tsv', sep='\t').to_numpy().flatten()
@@ -111,8 +119,10 @@ def doHist2D(ypredX,ypredY,varX,varY,labelX,labelY,ids):
 
 doHist2D(y_predB,y_predHMM,y_predBScore,y_predHMMScore,r'Beam $\textrm{N}_{\textrm{B}}=15$',"HMM",true_ids)
 plt.savefig("results/histComp.eps")
-
+"""
 ##Accuracy for table 
+
+"""
 
 dataset_long="data/LongDatasets/1000Prot/"
 #dataset_long="data/NormDatasets/1000Prot/"
@@ -127,3 +137,4 @@ print("Results for long dataset: ")
 print("Beam Decoder - Accuracy " +  str(mean_acc_beam) + ", Std: " + str(mean_acc_beam_std))
 print("HMM - Accuracy " +  str(mean_acc_hmm) + ", Std: " + str(mean_acc_hmm_std))
 
+"""

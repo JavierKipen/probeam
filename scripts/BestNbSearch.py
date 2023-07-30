@@ -34,7 +34,7 @@ def get_proc_time_beam(outputBeam):
     return computing_time;
 
 n_proteins=20000; #Only on the 20k dataset
-n_beams=[2,3,4,5,6,7,8,9,10,12,15,20,40];
+n_beams=[2,3,5,7,10,12,15,20,40];
 
 path_datasets_figure=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/NormDatasets/";
 

@@ -26,8 +26,8 @@ def erase_contents(folder): #Erase contents of folder
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
-
+n_proteins=[20,50,100,200,500,1000,2000,5000,10000];
+#n_proteins=[20000];
 
 path_datasets=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/"
 path_datasets_norm=path_datasets+"NormDatasets/"
@@ -87,3 +87,4 @@ cmd_sim_rad = "./bin/whatprot simulate rad -t 10 -g "+str(n_reads_long)+" -P " +
 
 subprocess.run(cmd_sim_rad, shell=True, check=True)
 subprocess.run(cmd_gen_dye_tracks, shell=True, check=True)
+
