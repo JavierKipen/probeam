@@ -44,6 +44,25 @@ def get_param(file_path,param,sep_ini="_",sep_end="_"):
         param_value_str=sub_str[:sub_str.find(sep_end)]
     param=int(param_value_str);
     return param
+
+def get_map_times(timing_path):
+    f = open(timing_path, "r")
+    map_out={};
+    cont_read=True;
+    while cont_read: 
+        line=f.readline();
+        if line:
+            sub_strk=line[line.find("K=")+2:];
+            k_str=sub_strk[:sub_strk.find(" ")]
+            sub_strh=line[line.find("H= ")+3:];
+            h_str=sub_strh[:sub_strh.find(":")]
+            t_str=sub_strh[sub_strh.find(":")+2:sub_strh.find('\n')]
+            t=float(t_str)/92300;k=int(k_str);h=int(h_str)
+            map_out[tuple([k,h])]=t;
+        else:
+            cont_read=False;
+    return map_out
+
 curr_ds=datasets_path+str(n_proteins)+"Prot/"
 
 dye_seqs=pd.read_csv(curr_ds+"dye-seqs.tsv", sep='\t', skiprows=2,header=None)
@@ -53,7 +72,8 @@ dye_seqs_map = {dye_seqs.loc[i,2]:dye_seqs.loc[i,1] for i in range(len(dye_seqs)
 count=0;
 #ipdb.set_trace();
 ks=[];hs=[];Accs=[];std_accs=[]; ts=[];
-
+ipdb.set_trace();
+timing_map=get_map_times("../data/NormDatasets/20000Prot/pWtiming-results.txt");
 for file_path in os.listdir(curr_ds):
     if file_path.startswith("predictionsHybrid_"):
         k=get_param(file_path,'K');
@@ -61,10 +81,13 @@ for file_path in os.listdir(curr_ds):
         predictions_hybrid = pd.read_csv(curr_ds+file_path)['best_pep_iz'].to_numpy();
         true_ids =  pd.read_csv(curr_ds+'true-ids.tsv', sep='\t').to_numpy().flatten()
         acc_hybrid,std_hybrid=get_crossval_acc(true_ids, predictions_hybrid, dye_seqs_map);
-        ts.append(0); #Now not needed
+        if tuple([k,h]) in timing_map:
+            ts.append(timing_map[tuple([k,h])]); #Now not needed
+        else:
+            ts.append(0); #Now not needed
         ks.append(k);hs.append(h);Accs.append(acc_hybrid);std_accs.append(std_hybrid);
 
 dict= {'K': ks, 'H' : hs, 'Acc': Accs,'Acc std': std_accs, 't': ts}
 df = pd.DataFrame(dict)
 
-print(df.sort_values(by=["K","H"]))
+print(df.sort_values(by=["t","K","H"]))
