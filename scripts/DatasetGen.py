@@ -46,6 +46,7 @@ if not os.path.isdir(path_datasets_long):
     os.mkdir(path_datasets_long)
 
 ##Generate norm datasets
+"""
 for n in n_proteins:
     protein_folder=path_datasets_norm+str(n)+"Prot/"
     if not os.path.isdir(protein_folder): ##If folder doesnt exist
@@ -67,8 +68,10 @@ for n in n_proteins:
     subprocess.run(cmd_gen_dye_tracks, shell=True, check=True)
     #subprocess.run(cmd_sim_rad)
 
+"""
+
 #Generate long datasets:
-n_proteins_long=1000
+n_proteins_long=20000
 protein_folder=path_datasets_long+str(n_proteins_long)+"Prot/"
 if not os.path.isdir(protein_folder): ##If folder doesnt exist
     os.mkdir(protein_folder)
