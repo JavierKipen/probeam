@@ -1,7 +1,9 @@
 #include "ArgParser.h"
 
-#define DEF_NBEAM 15
-#define DEF_PATH "C:/Users/JK-WORK/Desktop/probeam/probeam/data/NormDatasets/1000Prot/"
+#define DEF_NBEAM 7
+// #define DEF_PATH "C:/Users/JK-WORK/Desktop/probeam/probeam/data/NormDatasets/1000Prot/"
+
+#define DEF_PATH "C:/Users/JK-WORK/Documents/modifWhatprot/Own/HMM_modif/Datasets/ForPaper/20000Prot/"
 
 ArgParser::ArgParser(int argc, char* argv[])
 {

@@ -18,16 +18,20 @@ public:
 	CalculationsWrapper();
 	void init(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts, unsigned int nBeam);
 	void getFirstMostLikelyStates(vector<State>* outMostLikely, vector<float>* outProbsNorm, float obs[N_COLORS]);
-	void obtainKDyeLoss(State& s, float obs[N_COLORS]);
-	void getObsLogProbs(vector<float>* outLogProbs, vector<State>& auxStates, float obs[N_COLORS]);
-	void getInfoForEdman(State& s);
+	//void getObsLogProbs(vector<float>* outLogProbs, vector<StateRed>& auxStates, float obs[N_COLORS]);
+	void getInfoForEdman(vector<State>& s, unsigned int nStates);
 	pair<unsigned int, float> getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs);
 	vector<array<unsigned int, N_COLORS>> KDyeLoss; //Ks to try in the transition;
 	vector<float> KProbsDyeLoss; //Probs of Ks to try in the transition;
 	string internalDyeSeqIdToStr(unsigned int id);
 	void clear();
-	IFED infoEdman;
+
+	vector<IFED> infosEdman;
+	float calcDyeLossProb(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS]);
+	
 private:
+	
+
 	float n_peptides;
 	InitStates is; // To obtain the most likely first states.
 	void reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& dyeSeqsCounts); //formats to chunk of dye sequences togheter en memory, indexes and chunk of probabilities in memory.

@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			Decoder decoder(argParser.nBeam);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
 			timeRunAndSave(decoder, dataIO);
-			//checkReducedData(decoder, dataIO, 100);
+			//checkReducedData(decoder, dataIO, 1000);
 			//checkWholeDataset(decoder, dataIO);
 		}
 		else
@@ -83,8 +83,8 @@ void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 	auto start = chrono::high_resolution_clock::now();
 	for (unsigned int i = 0; i < reduced; i++)
 	{
-		if (i == 1)
-			cout << "debug";
+		if (i==17)
+			cout << i << endl;
 		auxRes = dec.decode((float(*)[3])dataIO.reads[i].data());
 		//auxRes = decoder.decode((float(*)[3])dataIO.reads[1].data());
 		yPred.push_back(auxRes.first);

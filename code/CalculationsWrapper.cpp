@@ -32,6 +32,9 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
 	dyeSeqsCounts = relCounts;
 	reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
+	InfoForEdmanDegradation aux;
+	for (unsigned int i = 0; i < nBeam; i++)
+		infosEdman.push_back(aux);
 	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs ,&dyeSeqsCounts, nBeam);
 }
 
@@ -79,83 +82,67 @@ string CalculationsWrapper::internalDyeSeqIdToStr(unsigned int id)
 }
 
 
-void CalculationsWrapper::obtainKDyeLoss(State& s, float obs[N_COLORS])
+float CalculationsWrapper::calcDyeLossProb(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS])
 {
-	unsigned int count = 0;
-	float comb_factor;
-	unsigned int dif;
-	unsigned int totalInitDyes = s.K[0] + s.K[1] + s.K[2];
+	float retVal = 0;
+	unsigned int totalInitDyes = Kinit[0] + Kinit[1] + Kinit[2];
+	float comb_factor = (float) (nChoosek(Kinit[0], Kend[0]) * nChoosek(Kinit[1], Kend[1]) * nChoosek(Kinit[2], Kend[2])); //Combinational factor of picking which dyes were not attached
+	unsigned int dif = totalInitDyes - Kend[0] - Kend[1] - Kend[2];
+	retVal=comb_factor * (float)pow(L, dif) * (float)pow((1 - L), totalInitDyes - dif);
 
-	float L1dif_i, L1dif_j, L1dif_k;
-
-	KDyeLoss.clear();
-	KProbsDyeLoss.clear();
-
-	for (unsigned int i = 0; i < s.K[0] + 1; i++) { //Loops with all possible Ks that could be
-		L1dif_i = abs((obs[0] / MU) - i);
-		for (unsigned int j = 0; j < s.K[1] + 1; j++) {
-			L1dif_j = abs((obs[1] / MU) - j);
-			for (unsigned int k = 0; k < s.K[2] + 1; k++) {
-				L1dif_k = abs((obs[2] / MU) - k);
-				if ((L1dif_i + L1dif_j + L1dif_k) < l1normMaxDyeLoss || (i == s.K[0] && j==s.K[1] && k==s.K[2]) ) //This K can give an observation probability which is not negligible, but also considers same K to always mantain the number of states.
-				{
-					comb_factor = (float)nChoosek(s.K[0], i) * nChoosek(s.K[1], j) * nChoosek(s.K[2], k); //Combinational factor of picking which dyes were not attached
-					dif = totalInitDyes - i - j - k;
-					array<unsigned int, N_COLORS> aux = { i, j, k };
-					KDyeLoss.push_back(aux);
-					KProbsDyeLoss.push_back((float)comb_factor * (float)pow(L, dif) * (float)pow((1 - L), totalInitDyes - dif));//Probability of initial state
-				}
-			}
-		}
-	}
+	return retVal;
 }
 
-void CalculationsWrapper::getInfoForEdman(State& s)
+void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates) 
 {
 	string currDyeSeq;
 	float currDyeProb;
-	unsigned int dyeSeqIdx,dyeSeqLen;
+	unsigned int dyeSeqIdx, dyeSeqLen;
 	unsigned long dyeSeqStartInMemIdx;
-	float totalProb=0;
+	float totalProb = 0;
 	bool probFound = false;
 	char nextAA;
-	infoEdman.clear();//Clears variable
-	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
+	for (unsigned int k = 0; k < nStates; k++) //For every state that we consider
 	{
-		dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
-		dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
-		dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
-		currDyeProb = relProbs[dyeSeqIdx]; 
-		if (dyeSeqLen-1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
+		State& s = sV[k];
+		infosEdman[k].clear();//Clears variable
+		for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
 		{
-			probFound = true;
-			nextAA = dyeSeqsTogheter[dyeSeqStartInMemIdx + s.RCharCount];
-			if (nextAA == '.')
+			dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
+			dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
+			dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
+			currDyeProb = relProbs[dyeSeqIdx];
+			if (dyeSeqLen - 1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
 			{
-				infoEdman.nonLumCanBeRemoved = true;
-				infoEdman.dyeSeqsIdxsDot[infoEdman.dyeSeqsIdxsCountDot++] = dyeSeqIdx;
-				infoEdman.pRemNonLum += currDyeProb;
-			}
-			else
-			{
-				for (unsigned int j = 0; j < N_COLORS; j++)
+				probFound = true;
+				nextAA = dyeSeqsTogheter[dyeSeqStartInMemIdx + s.RCharCount];
+				if (nextAA == '.')
 				{
-					if (nextAA == (j + '0'))
+					infosEdman[k].nonLumCanBeRemoved = true;
+					infosEdman[k].dyeSeqsIdxsDot[infosEdman[k].dyeSeqsIdxsCountDot++] = dyeSeqIdx;
+					infosEdman[k].pRemNonLum += currDyeProb;
+				}
+				else
+				{
+					for (unsigned int j = 0; j < N_COLORS; j++)
 					{
-						infoEdman.dyeCanBeRemoved[j] = true;
-						infoEdman.dyeSeqsIdxs[j][infoEdman.dyeSeqsIdxsCount[j]++]= dyeSeqIdx;
-						infoEdman.pRemDye[j] += currDyeProb;
+						if (nextAA == (j + '0'))
+						{
+							infosEdman[k].dyeCanBeRemoved[j] = true;
+							infosEdman[k].dyeSeqsIdxs[j][infosEdman[k].dyeSeqsIdxsCount[j]++] = dyeSeqIdx;
+							infosEdman[k].pRemDye[j] += currDyeProb;
+						}
 					}
 				}
+				totalProb += currDyeProb;
 			}
-			totalProb += currDyeProb;
 		}
-	}
-	if (probFound)
-	{
-		infoEdman.pRemNonLum /= totalProb;//If any of the probs then normalize probabilities
-		for (unsigned int j = 0; j < N_COLORS; j++)
-			infoEdman.pRemDye[j] /= totalProb;
+		if (probFound)
+		{
+			infosEdman[k].pRemNonLum /= totalProb;//If any of the probs then normalize probabilities
+			for (unsigned int j = 0; j < N_COLORS; j++)
+				infosEdman[k].pRemDye[j] /= totalProb;
+		}
 	}
 	//if (abs((infoEdman.pRemNonLum + infoEdman.pRemDye[0] + infoEdman.pRemDye[1] + infoEdman.pRemDye[2])-1) > 0.1)
 	//	cout << "This shouldnt happen";
@@ -163,25 +150,6 @@ void CalculationsWrapper::getInfoForEdman(State& s)
 
 }
 
-void CalculationsWrapper::getObsLogProbs(vector<float>* outLogProbs, vector<State>& auxStates, float obs[N_COLORS])
-{
-	float stds_loc[N_COLORS];
-	float means_loc[N_COLORS];
-	float auxLogProbObs;
-
-	for (unsigned int i = 0; i < auxStates.size(); i++)
-	{
-		State& Si = auxStates[i];
-		auxLogProbObs = 0;
-		means_loc[0] = getMeanState(Si, 0); means_loc[1] = getMeanState(Si, 1); means_loc[2] = getMeanState(Si, 2);
-		stds_loc[0] = getStdState(Si, 0); stds_loc[1] = getStdState(Si, 1); stds_loc[2] = getStdState(Si, 2);
-		for (unsigned long j = 0; j < N_COLORS; j++)
-			auxLogProbObs -= (float)pow((obs[j] - means_loc[j]) / stds_loc[j], 2);
-		auxLogProbObs /= 2;
-		auxLogProbObs -= (float)log(LOGTERM_CONST * stds_loc[0] * stds_loc[1] * stds_loc[2]);
-		outLogProbs->push_back(auxLogProbObs); //Pushes back logprob of obs
-	}
-}
 
 pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs)
 {
@@ -245,6 +213,7 @@ void  CalculationsWrapper::getRelProbs(State& s)
 void CalculationsWrapper::clear()
 {
 	is.clear();
+	
 }
 
 

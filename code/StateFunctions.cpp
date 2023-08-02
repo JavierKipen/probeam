@@ -213,10 +213,127 @@ bool isNEqual(unsigned int N1[N_COLORS], unsigned int N2[N_COLORS])
 		retVal &= (N1[i] == N2[i]);
 	return retVal;
 }
+
+bool isNZero(unsigned int N[N_COLORS])
+{
+	unsigned int Z[N_COLORS] = { 0 };
+	return isNEqual(N, Z);
+}
+
 unsigned int KDist(unsigned int K1[N_COLORS], unsigned int K2[N_COLORS])
 {
 	unsigned int retVal = 0;
 	for (unsigned int i = 0; i < N_COLORS; i++)
 		retVal += ABS( (int)K1[i] - (int)K2[i]);
+	return retVal;
+}
+
+
+
+unsigned int getBestKi(float obs)
+{
+	unsigned int auxKi = (int(obs / MU) < 0) ? 0 : int(obs / MU); //Lowest possible value is floor or 0.
+	auxKi = (probObsSingleColor(obs, auxKi) > probObsSingleColor(obs, auxKi + 1)) ? auxKi : auxKi + 1; //Keeps the most likely Ki
+	return auxKi;
+}
+
+bool isK1leqK2elem(unsigned int K1[N_COLORS], unsigned int K2[N_COLORS])
+{
+	bool retVal=true;
+	for (unsigned int i = 0; i < N_COLORS; i++)
+		retVal &= (K1[i] <= K2[i]);
+	return retVal;
+}
+
+StateRed* copyState(StateRed* dest, State& orig)
+{
+	for (unsigned int i = 0; i < N_COLORS; i++)
+	{
+		dest->N[i] = orig.N[i];
+		dest->K[i] = orig.K[i];
+	}
+	for (unsigned int i = 0; i < orig.RCharCount; i++)
+	{
+		dest->R[i] = orig.R[i];
+	}
+	dest->RCharCount = orig.RCharCount;
+	return dest;
+}
+StateRed* setK(StateRed* s, unsigned int Kp[N_COLORS])
+{
+	for (unsigned int i = 0; i < N_COLORS; i++)
+		s->K[i] = Kp[i];
+	return s;
+}
+
+StateRed* remChar(StateRed* s, char ch)
+{
+	s->R[s->RCharCount++] = ch;
+	return s;
+}
+StateRed* decN(StateRed* s, unsigned int i)	//Decreases K at index i(MODIFIES STATE)
+{
+	s->N[i] -= 1;
+	return s;
+}
+
+StateRed* omitRemoval(StateRed* s)
+{
+	s->RCharCount--;
+	return s;
+}
+StateRed* incN(StateRed* s, unsigned int i)
+{
+	s->N[i] += 1;
+	return s;
+}
+bool isEqual(StateRed& s1, StateRed& s2)
+{
+	bool retVal = false;
+	bool resN, resK, resR;
+	resK = true;
+	for (unsigned int i = 0; i < N_COLORS; i++)
+		resK &= (s1.K[i] == s2.K[i]);
+	if (resK)
+	{
+		resN = true;
+		for (unsigned int i = 0; i < N_COLORS; i++)
+			resN &= (s1.N[i] == s2.N[i]);
+		if (resN && (s1.RCharCount == s2.RCharCount))
+		{
+			resR = true;
+			for (unsigned int i = 0; i < s1.RCharCount; i++)
+				resR &= (s1.R[i] == s2.R[i]);
+			if (resR)
+				retVal = true;
+		}
+	}
+	return retVal;
+}
+
+void copyState(State* dest, StateRed& orig) // Copies without dye sequences
+{
+	for (unsigned int i = 0; i < N_COLORS; i++)
+	{
+		dest->N[i] = orig.N[i];
+		dest->K[i] = orig.K[i];
+	}
+	for (unsigned int i = 0; i < orig.RCharCount; i++)
+	{
+		dest->R[i] = orig.R[i];
+	}
+	dest->RCharCount = orig.RCharCount;
+}
+
+float approxDistZScore(unsigned int Kp[N_COLORS], float obs[N_COLORS])
+{
+	float retVal = 0;
+	for (unsigned int i = 0; i < N_COLORS; i++)
+	{
+		if (Kp[i] == 0)
+			retVal += ABS(obs[i] / STD_B);
+		else
+			retVal += ABS((obs[i] - MU * Kp[i]) / STD);
+	}
 	return retVal;
 }

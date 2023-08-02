@@ -20,20 +20,36 @@ public:
 	pair<unsigned int, float> decode(float rad[N_FEATURES_PER_COL][N_COLORS]); //Decodes a given read. Returns id of dye sequence and probability
 	CalculationsWrapper cw;
 private:
-	
+	unsigned int currT,currNStates;
+	float zScoreTh;
+	bool noNextStates;
+	array<unsigned int, N_COLORS> currBestK; //The most likely K for a Xt, used in the transitions.
+	vector<array<unsigned int, N_COLORS>> PosNextKs; //Ks where next states can finish.
+	vector<float> PosNextKsObsProbLog; //Ks where next states can finish.
+	bool earlyFinish();
+	void getPosNextK(float obs[N_COLORS]);
+	void getBestKObs(float obs[N_COLORS]);
+	void calcAndPushPosStates(State& Si, unsigned int posNextKIndex, float stateProb, IFED& infoEd, unsigned int idxPrev);
+	vector<StateRed> auxStates; //States kept for the recursion
+	vector<unsigned int> prevStateIndex; //Index that says from which state was generated, to recover dyeseqs information
+	vector<float> auxStatesProb; //Prob of states kept for the recursion
+	vector<float> obsLogProb; //Prob of states kept for the recursion
+	void appendCandidateState(StateRed *s, float prob, unsigned int idxPrev, unsigned int posNextKIndex);
+	void retrieveDyeSequences(State * mostlikelyState,unsigned int selectedAuxStateIdx);
+	void recursivePosNextKs(float obs[N_COLORS], array<unsigned int, N_COLORS>& origK);
+
 	vector<vector<State>> mostLikelyStates; //States kept for every time T
 	vector<vector<float>> mostLikelyStatesProbNorm; //Prob of states kept for every time T
-	vector<State> auxStates; //States kept for the recursion
-	vector<float> auxStatesProb; //Prob of states kept for the recursion
-	vector<float> auxObsLogProb; //Used for the observation probabilities in the aux calc
-	void recursion(float obs[N_COLORS], unsigned int t);
-	void calcTransitionProbs(float obs[N_COLORS], unsigned int  t);
+	
+
+	void recursion(float obs[N_COLORS]);
+	void calcTransitionProbs(float obs[N_COLORS]);
 	void transProbSuccesfulRemoval(State &S, float initProb); //InitProb contains already the probability of dye loss + prob not detached.
 	void calcObservationProbs(float obs[N_COLORS]);
-	void keepBestStates(unsigned int t);
+	void keepBestStates();
 	pair<unsigned int, float> getMostProbDyeSeqIdx(); //This function gets the most likely states at the last time and outputs the most likely dye sequences.
 	void clear(); //To reset parameters after each decoding.
-	void appendCandidateState(State& s, float prob);
+	
 
 };
 

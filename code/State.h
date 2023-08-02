@@ -11,3 +11,10 @@ typedef struct {
 	unsigned int dyeSeqsIdxs[N_MAX_DYESEQS_IN_STATE];	//Idxs of dye sequences that belong to this state
 	unsigned int dyeSeqsIdxsCount; //Count of the dye sequences
 } State;
+
+typedef struct {
+	unsigned int N[N_COLORS];	//Number of ideal fluorophores remaining for each color
+	unsigned int K[N_COLORS];	//Fluorophores remaining
+	char R[N_ED_CYC];			//Removed sequence chars
+	unsigned int RCharCount;	//Count of the chars
+} StateRed; //Simplified  states, which are reduced to the elemental.
