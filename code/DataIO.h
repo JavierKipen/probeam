@@ -25,7 +25,7 @@ public:
 	vector<string> dyeSeqs;
 	vector<unsigned int> dyeSeqsIdxs;
 	vector<unsigned int> dyeSeqsCounts;
-
+	map<unsigned int, unsigned int> dyeSeqsCountsMap;
 	DataIO(string folderPath);
 	
 	void getDyeSeqsInfo(void);
@@ -33,6 +33,6 @@ public:
 	void loadReads(unsigned int limit);
 
 	void savePredictions(string Path, vector<unsigned int> yPred, vector<float> yPredProb); //Saves the prediction of a recorder into a csv file
-
+	void createMap();
 };
 

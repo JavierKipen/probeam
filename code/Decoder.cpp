@@ -5,17 +5,23 @@
 #define pNotDetachEdmanFails ((float)(1 - D) * E)
 #define pNotDetachEdmanWorks ((float)(1 - D) * (1 - E))
 
-#define ZSCOREDEFAULT 5
+
 
 Decoder::Decoder()
 {
 	nBeam = NBEAM_DEFAULT;
+	zScoreTh = ZSCOREDEFAULT;
 }
 
 Decoder::Decoder(unsigned int ExtnBeam)
 {
 	nBeam = ExtnBeam;
-	
+}
+
+Decoder::Decoder(unsigned int ExtnBeam, float cutoffTh)
+{
+	nBeam = ExtnBeam;
+	zScoreTh = cutoffTh;
 }
 void Decoder::init(vector<string> dyeSeqs, vector<unsigned int> dyeSeqsIdx, vector<unsigned int> relCounts)
 {
@@ -32,7 +38,7 @@ void Decoder::init(vector<string> dyeSeqs, vector<unsigned int> dyeSeqsIdx, vect
 	obsLogProb.reserve(N_CAND_STATE_RESERVE);
 	currT = 0;
 	noNextStates = false;
-	zScoreTh = ZSCOREDEFAULT;
+	
 	PosNextKs.reserve(100); //Ks where next states can finish.
 	PosNextKsObsProbLog.reserve(100); //Ks where next states can finish.
 	vector<StateRed> auxStates; //States kept for the recursion
@@ -69,7 +75,6 @@ void Decoder::recursion(float obs[N_COLORS])
 
 void Decoder::calcTransitionProbs(float obs[N_COLORS])
 {
-	unsigned int K_aux[N_COLORS];
 	cw.getInfoForEdman(mostLikelyStates[currT - 1], currNStates);
 	getBestKObs(obs); //Gets the most likely K, which is used for selecting which possible outputs can we have.
 	getPosNextK(obs); //Then keeps the Ks that are close to the observation
@@ -77,71 +82,94 @@ void Decoder::calcTransitionProbs(float obs[N_COLORS])
 	{
 		State& Si = mostLikelyStates[currT - 1][i];
 		IFED& info = cw.infosEdman[i];
-		
-		float stateLogProb = mostLikelyStatesProbNorm[currT - 1][i];
-		float stateProb = (float)exp(stateLogProb);
 		for (unsigned int Kidx=0; Kidx < PosNextKs.size(); Kidx++)
 		{
 			if (isK1leqK2elem(PosNextKs[Kidx].data(),Si.K))
 			{
-				calcAndPushPosStates(Si, Kidx, stateProb, info,i);
+				calcAndPushPosStates(Kidx, i);
 			}
 		}
 	}
 	
 }
 
-void Decoder::calcAndPushPosStates(State& Si, unsigned int posNextKIdx, float stateProb, IFED& infoEd,unsigned int idxPrev)
-{
+void Decoder::calcAndPushPosStates(unsigned int posNextKIdx,unsigned int idxStatePrev)
+{ //Things to be used
+	IFED& infoEd = cw.infosEdman[idxStatePrev];
+	State& Si = mostLikelyStates[currT - 1][idxStatePrev];
+	array<unsigned int, N_COLORS> posNextK = PosNextKs[posNextKIdx];
+	float stateProb = exp(mostLikelyStatesProbNorm[currT - 1][idxStatePrev]);
+
 	float pDetach = D;
 	float pNoDetach = (1 - D);
 	float pSuccessRem = pNoDetach * (1 - E); //Did not detach and Edman process not failed.
-	array<unsigned int, N_COLORS> posNextK = PosNextKs[posNextKIdx];
 	float dyeLossProb= cw.calcDyeLossProb(Si.K, posNextK.data());
 	array<unsigned int, N_COLORS> auxK= posNextK;
 	StateRed auxState;
 	setK(copyState(&auxState, Si), posNextK.data()); //Copies the state and sets the K to the value that is being analyzed
-	
     float noRemProb = stateProb * (1 - D) * E * (dyeLossProb); // Did not detach, fails edman cycle * dye loss prob
 	
 	if (isNZero(Si.K))
-		appendCandidateState(&auxState, stateProb, idxPrev, posNextKIdx); //When K=0, state goes to self. Any other effect does not matter.
+		appendCandidateState(&auxState, stateProb, idxStatePrev, posNextKIdx); //When K=0, state goes to self. Any other effect does not matter.
 	else
 	{
 		//No removal
 		if (isNZero(posNextK.data())) //If it was 0, we add the detachment prob.
 			noRemProb += stateProb * D;
-		appendCandidateState(&auxState, noRemProb, idxPrev, posNextKIdx); //State due only to dye loss, Edman cycle fails
+		appendCandidateState(&auxState, noRemProb, idxStatePrev, posNextKIdx); //State due only to dye loss, Edman cycle fails
 		//Removal of a "."
 		if (infoEd.nonLumCanBeRemoved)
 		{
-			appendCandidateState(remChar(&auxState, '.'), stateProb * (1 - D) * (1 - E) * dyeLossProb * infoEd.pRemNonLum, idxPrev, posNextKIdx); //State due only to dye loss, Edman cycle fails
+			appendCandidateState(remChar(&auxState, '.'), stateProb * (1 - D) * (1 - E) * dyeLossProb * infoEd.pRemNonLum, idxStatePrev, posNextKIdx); //State due only to dye loss, Edman cycle fails
 			omitRemoval(&auxState); //Resets aux var
 		}
 		//Removal of a dye
 		for (unsigned int i = 0; i < N_COLORS; i++)
 		{
-			if (infoEd.dyeCanBeRemoved[i])
-			{
-				float pDA = pDyeAttached(Si, i);
-				if (pDA != 0 && Si.K[i] > posNextK[i]) //Considering the case that the dye was attached
-				{  //And posNextK has less K than the original state
-					auxK[i] += 1;
-					if (isK1leqK2elem(Si.K, auxK.data()))
-					{
-						appendCandidateState(remChar(decN(&auxState, i), i + '0'), stateProb * (1 - D) * (1 - E) * cw.calcDyeLossProb(Si.K, auxK.data()) * pDA * infoEd.pRemDye[i], idxPrev, posNextKIdx);
-						omitRemoval(incN(&auxState, i));
-					}
-					//Decrease S.Ni--,S.R+=i
-				}
-				if (pDA != 1) //Dye not attached
-				{
-					appendCandidateState(remChar(decN(&auxState, i), i + '0'), stateProb * (1 - D) * (1 - E) * dyeLossProb * (1 - pDA) * infoEd.pRemDye[i], idxPrev, posNextKIdx);
-					omitRemoval(incN(&auxState, i));
-				}
-			}
+			if (infoEd.dyeCanBeRemoved[i]) //There exist a dye seq that has an aminoacid at the end that can be attached to a dye
+				uponSuccessRem(idxStatePrev, posNextKIdx, i);
 		}
 	}
+}
+
+void Decoder::uponSuccessRem(unsigned int idxStatePrev, unsigned int posNextKIndex,unsigned int dyeIdx)
+{ //Things to be used
+	IFED& infoEd = cw.infosEdman[idxStatePrev];
+	State& Si = mostLikelyStates[currT - 1][idxStatePrev];
+	array<unsigned int, N_COLORS> posNextK = PosNextKs[posNextKIndex];
+	float stateProb = exp(mostLikelyStatesProbNorm[currT - 1][idxStatePrev]);
+
+	float successRem = stateProb * (1 - D) * (1 - E); //Probability of a succesful removal
+	StateRed auxState;
+	setK(copyState(&auxState, Si), posNextK.data()); //Copies the state and sets the K to the value that is being analyzed
+	array<unsigned int, N_COLORS> auxK = posNextK;
+	float pDA; //Probability of dye attached, used in different scenarios
+
+	//Two cases when removal is succesful
+	// 
+	//First, is that the dye loss was up to AuxK, where AuxK[i] = posNextK[i]+1, then removed of an attached dye. 
+	//This case can only happen when the s.K[i]>posNextK[i]
+	if (Si.K[dyeIdx] > posNextK[dyeIdx]) 
+	{
+		
+		incVect(auxK.data(), dyeIdx); 
+		float dyeLossProb = cw.calcDyeLossProb(Si.K, auxK.data()); //Probability that keeps the dyes auxK.
+		pDA = pDyeAttached(Si.N, auxK.data(), dyeIdx); //Then we see the probability of the dye attached
+		float totalProb = successRem * dyeLossProb * pDA * infoEd.pRemDye[dyeIdx]; // Final probability of the case
+		appendCandidateState(remChar(decN(&auxState, dyeIdx), dyeIdx + '0'), totalProb, idxStatePrev, posNextKIndex);
+		omitRemoval(incN(&auxState, dyeIdx)); //Resets auxState
+		decVect(auxK.data(), dyeIdx); //ResetsK
+	}
+	//Second case is where the dye loss ended up in the same K, and then it was removed one that was not with a dye attached
+	if (Si.N[dyeIdx] > posNextK[dyeIdx])
+	{
+		float dyeLossProb = cw.calcDyeLossProb(Si.K, auxK.data()); //Dye loss from Si.K to posNextK
+		pDA = pDyeAttached(Si.N, auxK.data(), dyeIdx); //Then we see the probability of the dye attached
+		float totalProb = successRem * dyeLossProb * (1 - pDA) * infoEd.pRemDye[dyeIdx]; // Final probability of the case
+		appendCandidateState(remChar(decN(&auxState, dyeIdx), dyeIdx + '0'), totalProb, idxStatePrev, posNextKIndex);
+		omitRemoval(incN(&auxState, dyeIdx)); //Resets auxState
+	}
+
 }
 
 bool Decoder::earlyFinish() //Finish sequencing if it does not have next possible states or all states are with K=0.

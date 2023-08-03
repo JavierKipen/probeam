@@ -10,7 +10,10 @@ bool isEqual(State& s1, State& s2);		//Compares N,K and R to check if they are e
 bool isNEqual(State& s1, unsigned int Np[N_COLORS]);		//Compares N
 bool isNEqual(unsigned int N1[N_COLORS], unsigned int N2[N_COLORS]);		//Compares N
 bool isNZero(unsigned int N[N_COLORS]);
+unsigned int* incVect(unsigned int* V, unsigned int i);
+unsigned int* decVect(unsigned int* V, unsigned int i);
 float pDyeAttached(State& s, unsigned int i);	//Returns probability of dye attached.
+float pDyeAttached(unsigned int N[N_COLORS], unsigned int K[N_COLORS], unsigned int i);
 float logpObs(State& s, float obs[N_COLORS]);	//Returns log probability of observing the data given the state
 float estExpTerm(unsigned int K[N_COLORS], float obs_norm[N_COLORS]);	//Estimates exponent term
 
@@ -37,7 +40,9 @@ StateRed* setK(StateRed* s, unsigned int Kp[N_COLORS]);	//Sets K to a given valu
 StateRed* remChar(StateRed* s, char ch); //Adds to the removed char sequence the given character
 StateRed* decN(StateRed* s, unsigned int i);	//Decreases K at index i(MODIFIES STATE)
 StateRed* omitRemoval(StateRed* s); //Does not consider last removal in the chain (Nchars--)
-StateRed* incN(StateRed* s, unsigned int i); //Does not consider last removal in the chain (Nchars--)
+StateRed* incN(StateRed* s, unsigned int i); 
+StateRed* incK(StateRed* s, unsigned int i); 
+StateRed* decK(StateRed* s, unsigned int i);
 bool isEqual(StateRed& s1, StateRed& s2);		//Compares N,K and R to check if they are equal
 
 void copyState(State* dest, StateRed& orig); // Copies without dye sequences

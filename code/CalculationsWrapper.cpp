@@ -105,6 +105,7 @@ void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates
 	for (unsigned int k = 0; k < nStates; k++) //For every state that we consider
 	{
 		State& s = sV[k];
+		totalProb = 0;
 		infosEdman[k].clear();//Clears variable
 		for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
 		{

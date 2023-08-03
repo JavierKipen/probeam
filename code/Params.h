@@ -19,3 +19,6 @@
 
 #define ENUMBER (2.71828)
 #define LOGTERM_CONST 15.7496099457 //(2*PI)^(3/2) precomputed to make it faster
+
+#define DEF_NBEAM 10
+#define ZSCOREDEFAULT 8

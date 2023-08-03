@@ -65,7 +65,10 @@ float pDyeAttached(State& s, unsigned int i)
 {
 	return (s.N[i]==0) ? 0: (float)s.K[i] / (float)s.N[i];
 }
-
+float pDyeAttached(unsigned int N[N_COLORS], unsigned int K[N_COLORS], unsigned int i)
+{
+	return (N[i] == 0) ? 0 : (float)K[i] / (float)N[i];
+}
 
 float logpObs(State& s, float obs[N_COLORS])
 {
@@ -287,6 +290,26 @@ StateRed* incN(StateRed* s, unsigned int i)
 	s->N[i] += 1;
 	return s;
 }
+StateRed* decK(StateRed* s, unsigned int i)
+{
+	s->K[i] -= 1;
+	return s;
+}
+StateRed* incK(StateRed* s, unsigned int i)
+{
+	s->K[i] += 1;
+	return s;
+}
+unsigned int* incVect(unsigned int* V, unsigned int i)
+{
+	V[i] += 1;
+	return V;
+}
+unsigned int* decVect(unsigned int* V, unsigned int i)
+{
+	V[i] -= 1;
+	return V;
+}
 bool isEqual(StateRed& s1, StateRed& s2)
 {
 	bool retVal = false;
@@ -333,7 +356,7 @@ float approxDistZScore(unsigned int Kp[N_COLORS], float obs[N_COLORS])
 		if (Kp[i] == 0)
 			retVal += ABS(obs[i] / STD_B);
 		else
-			retVal += ABS((obs[i] - MU * Kp[i]) / STD);
+			retVal += ABS((obs[i] - MU * Kp[i]) / (sqrt(Kp[i])*STD));
 	}
 	return retVal;
 }
