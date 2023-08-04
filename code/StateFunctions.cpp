@@ -6,6 +6,7 @@
 #define ABS(x)  ( ( (x) < 0) ? -(x) : (x) )
 
 
+
 unsigned int getCountN(State& s)
 {
 	unsigned int res=0;
@@ -351,12 +352,21 @@ void copyState(State* dest, StateRed& orig) // Copies without dye sequences
 float approxDistZScore(unsigned int Kp[N_COLORS], float obs[N_COLORS])
 {
 	float retVal = 0;
+	float aux;
 	for (unsigned int i = 0; i < N_COLORS; i++)
 	{
 		if (Kp[i] == 0)
-			retVal += ABS(obs[i] / STD_B);
+			aux = ABS(obs[i] / STD_B);
 		else
-			retVal += ABS((obs[i] - MU * Kp[i]) / (sqrt(Kp[i])*STD));
+			aux = ABS((obs[i] - MU * Kp[i]) / (sqrt(Kp[i])*STD));
+#ifdef PRUN_WORST_Z_SCORE
+		if (aux > retVal)
+			retVal = aux;
+#else
+		retVal += aux;
+#endif // 
+
+		
 	}
 	return retVal;
 }
