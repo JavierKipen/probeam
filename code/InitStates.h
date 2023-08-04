@@ -50,7 +50,11 @@ private:
 	void hardcoreMostLikelyInitStates(vector<State>* outMostLikely, vector<float>* outProbsNorm, unsigned int nBeam, float obs[N_COLORS]);
 	void precomputeForHardcoreInitStates();
 
+
+
 	//For smart init states
+	float calcDyeLossProbLog(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS]);
+	float logL, logOneMinusL;
 	unsigned int nBeam;
 	unsigned int maxNis[N_COLORS];
 	unsigned int shiftsMin[N_COLORS];

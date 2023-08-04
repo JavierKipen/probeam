@@ -220,7 +220,7 @@ void Decoder::keepBestStates()
 
 pair<unsigned int, float> Decoder::getMostProbDyeSeqIdx()
 {
-	return cw.getMostProbDyeSeqIdx(mostLikelyStates[currT], mostLikelyStatesProbNorm[currT]);
+	return cw.getMostProbDyeSeqIdx(mostLikelyStates[currT], mostLikelyStatesProbNorm[currT], currNStates);
 }
 
 void Decoder::appendCandidateState(StateRed* s, float prob, unsigned int idxPrev, unsigned int posNextKIndex)

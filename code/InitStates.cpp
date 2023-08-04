@@ -14,6 +14,8 @@ void getPosNextKValues(vector<array<unsigned int, N_COLORS>>& possibleNextKs, un
 InitStates::InitStates()
 {
 	bestStatesInfo.reserve(100); //Nbeam usually lower than this
+	logL = log(L);
+	logOneMinusL = log(1-L);
 }
 
 
@@ -269,12 +271,10 @@ void InitStates::smartSearchStates( float obs[N_COLORS])
 		if (i > nBeam) //For the first nBeam its not needed to check the best Kstate, since it was used to fill the buffer
 		{
 			float stateNObsLog= initIdealStatesLogProb[sIdx] + getObsLogProb(obs, aux.K); //P(S) * Pobs with Kopt
-			float maxPDyeMiss = log(exp(PdyeMissInit[sIdx][aux.K]) + maxIncDyeMiss[sIdx]);
-			maxPDyeMiss = (maxPDyeMiss > 0) ? 0 : maxPDyeMiss; //Prob is always less than 0 in log.
-			float logProbTh = maxPDyeMiss + stateNObsLog; //Threshold of max values that can have neighbours
-			if (logProbTh > bestStatesInfo[nBeam - 1].logProb) //If is superated then neighbors are checked
+			if (stateNObsLog > bestStatesInfo[nBeam - 1].logProb) //We only check for neighbours if this prob is higher than the worst state of the list
 			{
-				aux.logProb = stateNObsLog + PdyeMissInit[sIdx][aux.K]; //LogProb of the state
+				//aux.logProb = stateNObsLog + PdyeMissInit[sIdx][aux.K]; //LogProb of the state
+				aux.logProb = stateNObsLog + calcDyeLossProbLog(initIdealStates[sIdx].N, sKBest); //LogProb of the state
 				if (aux.logProb > bestStatesInfo[nBeam - 1].logProb) //If the probability is higher than the last one
 					pushInitStateInfo(aux); //Pushes the obtained value
 				exploreOtherKs(aux, sKBest, obs); //Explores other Ks
@@ -337,13 +337,11 @@ void InitStates::exploreOtherKs(InitStateInfo& stateInfo,unsigned int sKBest[N_C
 		{
 			aux.K = NorKToUnsInt(newK.data());
 			float stateNObsLog = initIdealStatesLogProb[aux.stateIndex] + getObsLogProb(obs, aux.K); //P(S) * Pobs with Kopt
-			float maxPDyeMiss = log(exp(PdyeMissInit[aux.stateIndex][aux.K]) + maxIncDyeMiss[aux.stateIndex]);
-			maxPDyeMiss = (maxPDyeMiss > 0) ? 0 : maxPDyeMiss; //Prob is always less than 0 in log.
-			float logProbTh = maxPDyeMiss + stateNObsLog;
-			if (logProbTh > bestStatesInfo[nBeam - 1].logProb) //If it could be that with this K a neighbour can have better prob than what we got
+			if (stateNObsLog > bestStatesInfo[nBeam - 1].logProb) //If it could be that with this K a neighbour can have better prob than what we got
 			{
 				getPosNextKValues(possibleNextKsAux, newK.data(), sKBest, initIdealStates[aux.stateIndex].N);
-				aux.logProb = stateNObsLog + PdyeMissInit[aux.stateIndex][aux.K]; //LogProb of the state
+				//aux.logProb = stateNObsLog + PdyeMissInit[aux.stateIndex][aux.K]; //LogProb of the state
+				aux.logProb = stateNObsLog + calcDyeLossProbLog(initIdealStates[aux.stateIndex].N,newK.data()); //LogProb of the state
 				if (aux.logProb > bestStatesInfo[nBeam - 1].logProb) //If the probability is higher than the last one
 					pushInitStateInfo(aux); //Pushes the obtained value
 				
@@ -461,6 +459,15 @@ void InitStates::precomputeForHardcoreInitStates()
 	}
 }
 
+float InitStates::calcDyeLossProbLog(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS])
+{
+	float retVal = 0;
+	float totalInitDyes = Kinit[0] + Kinit[1] + Kinit[2];
+	float comb_factor = (float)(nChoosek(Kinit[0], Kend[0]) * nChoosek(Kinit[1], Kend[1]) * nChoosek(Kinit[2], Kend[2])); //Combinational factor of picking which dyes were not attached
+	float dif = totalInitDyes - Kend[0] - Kend[1] - Kend[2];
+	retVal = log(comb_factor) + dif * logL +  (totalInitDyes - dif ) * logOneMinusL;
+	return retVal;
+}
 
 //Useful functions
 
@@ -471,6 +478,8 @@ vector<unsigned int> argsortf(const vector<float>& vf) { //Argsort for a float v
 		[&vf](unsigned int i1, unsigned int i2) {return vf[i1] > vf[i2]; });
 	return idx;
 }
+
+
 
 unsigned int nChoosek(unsigned int n, unsigned int k) //https://stackoverflow.com/questions/9330915/number-of-combinations-n-choose-r-in-c
 {

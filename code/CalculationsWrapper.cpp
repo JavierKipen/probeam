@@ -24,10 +24,13 @@ CalculationsWrapper::CalculationsWrapper()
 void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts,unsigned int nBeam)
 {
 	l1normMaxDyeLoss = L1NORM_MAX; // Could be a parameter to run 
+	vector<float> vect(dyeSeqsIdx.size(), 0);
+	dyeSeqsOutProb = vect;
 	//Mem reservation
 	dyeSeqsTogheter.reserve(1000000);
 	KDyeLoss.reserve(100);
 	KProbsDyeLoss.reserve(100);
+	dyeSeqsOut.reserve(20000); //Vector to calculate the final peptide probs
 	relProbs.reserve(relCounts.size());
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
 	dyeSeqsCounts = relCounts;
@@ -152,12 +155,11 @@ void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates
 }
 
 
-pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs)
+pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs,unsigned int currNStates)
 {
-	map<unsigned int, float> possibleOutputs;
 	pair<unsigned int, float> output;
 	float normFactor = 0;
-	unsigned int nBeam = finalStatesLogProbs.size();
+	unsigned int nBeam = currNStates;
 	unsigned int mostLikelyOut;
 	float mostLikelyOutP = -1;
 	//Normalizing last state probabilities
@@ -176,24 +178,28 @@ pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State
 		for (unsigned int d_idx = 0; d_idx < s.dyeSeqsIdxsCount; d_idx++)
 		{
 			unsigned int dyeSeqIdx = s.dyeSeqsIdxs[d_idx];
-			auto it = possibleOutputs.find(dyeSeqIdx);
-			if (it == possibleOutputs.end()) //Idx of dye seq not found
-				possibleOutputs[dyeSeqIdx] = finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx];
-			else
-				possibleOutputs[dyeSeqIdx] += finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx] ;
+			unsigned int outDyesIdx = 0;
+			dyeSeqsOut.push_back(dyeSeqIdx);
+			dyeSeqsOutProb[dyeSeqIdx] += (finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx]);
 		}
 
 	}
+	//Remove repeated sequences
+	vector<unsigned int>::iterator ip;
+	ip = unique(dyeSeqsOut.begin(), dyeSeqsOut.end());
+	dyeSeqsOut.resize(distance(dyeSeqsOut.begin(), ip));
+
 	//Picking most likely
-	for (auto it = possibleOutputs.begin(); it != possibleOutputs.end(); it++)
+	for (unsigned int i=0;i< dyeSeqsOut.size();i++)
 	{
-		if (it->second > mostLikelyOutP)
+		if (dyeSeqsOutProb[dyeSeqsOut[i]] > mostLikelyOutP)
 		{
-			mostLikelyOut = it->first;
-			mostLikelyOutP = it->second;
+			mostLikelyOut = dyeSeqsOut[i];
+			mostLikelyOutP = dyeSeqsOutProb[dyeSeqsOut[i]];
 		}
+		dyeSeqsOutProb[dyeSeqsOut[i]] = 0; //Resets output var
 	}
-	string picked = internalDyeSeqIdToStr(mostLikelyOut);
+	//string picked = internalDyeSeqIdToStr(mostLikelyOut);
 	output.first = dyeSeqsIdxOUT[mostLikelyOut];
 	output.second = mostLikelyOutP;
 	return output;
@@ -214,7 +220,8 @@ void  CalculationsWrapper::getRelProbs(State& s)
 void CalculationsWrapper::clear()
 {
 	is.clear();
-	
+	dyeSeqsOut.clear(); //Vector to calculate the final peptide probs
+
 }
 
 

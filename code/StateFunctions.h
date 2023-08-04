@@ -2,7 +2,6 @@
 #include "Params.h"
 #include "State.h"
 
-#define PRUN_WORST_Z_SCORE //(FOR PRUNING)If not commented looks at the worst z score, if commented looks at the sum of z scores 
 
 unsigned int getCountN(State& s);		//Returns count of total N
 unsigned int getCountK(State& s);		//Returns count of total K

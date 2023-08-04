@@ -20,7 +20,7 @@ public:
 	void getFirstMostLikelyStates(vector<State>* outMostLikely, vector<float>* outProbsNorm, float obs[N_COLORS]);
 	//void getObsLogProbs(vector<float>* outLogProbs, vector<StateRed>& auxStates, float obs[N_COLORS]);
 	void getInfoForEdman(vector<State>& s, unsigned int nStates);
-	pair<unsigned int, float> getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs);
+	pair<unsigned int, float> getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs, unsigned int currNStates);
 	vector<array<unsigned int, N_COLORS>> KDyeLoss; //Ks to try in the transition;
 	vector<float> KProbsDyeLoss; //Probs of Ks to try in the transition;
 	string internalDyeSeqIdToStr(unsigned int id);
@@ -42,6 +42,9 @@ private:
 	vector<float> relProbs;
 	vector<unsigned int> dyeSeqsIdxOUT; //Dye sequences idxs used in the classification. (in the code the idx represent the sapce on the vector
 	vector<unsigned int> dyeSeqsCounts;
+	
+	vector<unsigned int> dyeSeqsOut; //Vector to calculate the final peptide probs
+	vector<float> dyeSeqsOutProb;
 	float dyeSeqsProbRelOut[N_MAX_DYESEQS_IN_STATE]; //Variables for decoding most likely output
 	unsigned int dyeSeqsProbRelOutCount;
 	void getRelProbs(State& s);
