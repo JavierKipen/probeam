@@ -34,10 +34,7 @@ def get_crossval_acc(true_ids, y_pred, dye_seqs_map, n_folds=10):
     return np.mean(accs),np.std(accs)/np.sqrt(n_folds)
 
 def get_param(file_path,param,sep_ini="_",sep_end="_"):
-    if param=="K":
-    	sub_str=file_path[file_path.find(sep_ini+param)+2:];
-    else: #Bug in name of the saved files
-    	sub_str=file_path[file_path.find(param+sep_ini)+2:];
+    sub_str=file_path[file_path.find(param+sep_ini)+2:];
     if sub_str.find(sep_end)==-1: #If doesnt find final character, assumes a dot too.
         param_value_str=sub_str[:sub_str.find(".")]
     else:
@@ -45,7 +42,7 @@ def get_param(file_path,param,sep_ini="_",sep_end="_"):
     param=int(param_value_str);
     return param
 
-def get_map_times(timing_path):
+def get_map_times(timing_path,n_samples):
     f = open(timing_path, "r")
     map_out={};
     cont_read=True;
@@ -57,7 +54,7 @@ def get_map_times(timing_path):
             sub_strh=line[line.find("H= ")+3:];
             h_str=sub_strh[:sub_strh.find(":")]
             t_str=sub_strh[sub_strh.find(":")+2:sub_strh.find('\n')]
-            t=float(t_str)/92300;k=int(k_str);h=int(h_str)
+            t=float(t_str)/n_samples;k=int(k_str);h=int(h_str)
             map_out[tuple([k,h])]=t;
         else:
             cont_read=False;
@@ -72,14 +69,17 @@ dye_seqs_map = {dye_seqs.loc[i,2]:dye_seqs.loc[i,1] for i in range(len(dye_seqs)
 count=0;
 #ipdb.set_trace();
 ks=[];hs=[];Accs=[];std_accs=[]; ts=[];
-ipdb.set_trace();
-timing_map=get_map_times("../data/NormDatasets/20000Prot/pWtiming-results.txt");
+#ipdb.set_trace();
+true_ids =  pd.read_csv(curr_ds+'true-ids.tsv', sep='\t').to_numpy().flatten()
+n_samples=len(true_ids);
+timing_map=get_map_times("../data/NormDatasets/20000Prot/pWtiming-results.txt",n_samples);
+
+print("Showing results from  folder " + curr_ds);
 for file_path in os.listdir(curr_ds):
     if file_path.startswith("predictionsHybrid_"):
         k=get_param(file_path,'K');
         h=get_param(file_path,'H');
         predictions_hybrid = pd.read_csv(curr_ds+file_path)['best_pep_iz'].to_numpy();
-        true_ids =  pd.read_csv(curr_ds+'true-ids.tsv', sep='\t').to_numpy().flatten()
         acc_hybrid,std_hybrid=get_crossval_acc(true_ids, predictions_hybrid, dye_seqs_map);
         if tuple([k,h]) in timing_map:
             ts.append(timing_map[tuple([k,h])]); #Now not needed
