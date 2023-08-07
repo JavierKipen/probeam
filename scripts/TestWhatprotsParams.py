@@ -50,7 +50,7 @@ true_ids_path=protein_folder+"true-ids.tsv";
 cmd_set_threads="export OMP_NUM_THREADS=1 \n";
 #cmd_set_threads="export OMP_NUM_THREADS=40 \n";
 
-kH_param_map={100:[25,15],75:[25],200:[15]}
+kH_param_map={1000:[100,50],200:[25,50],500:[20,30]}
 #kH_param_map={200:[20,15]}
 
 msgs_list=[];

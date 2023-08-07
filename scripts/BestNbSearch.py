@@ -34,9 +34,10 @@ def get_proc_time_beam(outputBeam):
     return computing_time;
 
 n_proteins=20000; #Only on the 20k dataset
-n_beams=[2,3,5,7,10,12,15,20,40];
+n_beams=[60];
 
-path_datasets_figure=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/NormDatasets/";
+#path_datasets_figure=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/NormDatasets/";
+path_datasets_figure=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/LongDatasets/";
 
 path_datasets_figure_common_files= path_datasets_figure +"CommonFiles/"
 prot_fasta=path_datasets_figure_common_files+"UP000005640_9606.fasta"
@@ -65,7 +66,7 @@ for n_beam in n_beams:
     print(str(outputBeam))
     whole_message = whole_message+beam_msg;
     
-with open(protein_folder+"NBtiming-results.txt", 'w') as f:
+with open(protein_folder+"NBtiming-results.txt", 'a') as f:
     f.write(whole_message)
     f.write('\n')
 

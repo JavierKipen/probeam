@@ -17,7 +17,8 @@ import ipdb
 
 #datasets_path="C:/Users/JK-WORK/Documents/modifWhatprot/Own/HMM_modif/Datasets/ForPaper/";
 #datasets_path="C:/Users/JK-WORK/Desktop/probeam/probeam/data/NormDatasets/"
-datasets_path="../data/NormDatasets/"
+#datasets_path="../data/NormDatasets/"
+datasets_path="../data/LongDatasets/"
 n_proteins=20000;
 
 def get_crossval_acc(true_ids, y_pred, dye_seqs_map, n_folds=10):
@@ -72,7 +73,7 @@ ks=[];hs=[];Accs=[];std_accs=[]; ts=[];
 #ipdb.set_trace();
 true_ids =  pd.read_csv(curr_ds+'true-ids.tsv', sep='\t').to_numpy().flatten()
 n_samples=len(true_ids);
-timing_map=get_map_times("../data/NormDatasets/20000Prot/pWtiming-results.txt",n_samples);
+timing_map=get_map_times(curr_ds+'pWtiming-results.txt',n_samples);
 
 print("Showing results from  folder " + curr_ds);
 for file_path in os.listdir(curr_ds):

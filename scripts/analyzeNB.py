@@ -5,7 +5,8 @@ from sklearn import metrics
 import time
 #import matplotlib.pyplot as plt
 
-path_datasets="data/NormDatasets/"
+#path_datasets="data/NormDatasets/"
+path_datasets="data/LongDatasets/"
 n_proteins=20000;
 path_big_ds= path_datasets + str(n_proteins)+"Prot/"
 
@@ -36,6 +37,7 @@ for i in range(len(df)):
     df.loc[i,"Accuracy"]=mean_acc_beam;
     df.loc[i,"Accuracy std"]=mean_acc_beam_std;
 
+print("Results in dataset " + path_big_ds)
 print(df)
 
-df.to_csv("results/NbTable20000Prot.csv",index=False)
+#df.to_csv("results/NbTable20000Prot.csv",index=False)
