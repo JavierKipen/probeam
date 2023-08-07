@@ -9,6 +9,7 @@
 #define N_CAND_STATE_RESERVE 1000 //Number of states reserved for candidate states finding
 
 
+
 class Decoder
 {
 

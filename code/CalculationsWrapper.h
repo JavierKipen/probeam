@@ -4,6 +4,7 @@
 #include <map>
 #include <array>
 #include <vector>
+#include <unordered_map>
 #include "InfoForEdmanDegradation.h"
 #include "InitStates.h"
 
@@ -28,8 +29,11 @@ public:
 
 	vector<IFED> infosEdman;
 	float calcDyeLossProb(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS]);
-	
+	void orderCompTimesIFED();
 private:
+	map<array<unsigned int, N_COLORS>, float> IFEDTimeOfState;
+	void initMapTimeIFED();
+	array<unsigned int, N_COLORS> getStateOriginalN(State& s);
 	
 
 	float n_peptides;
@@ -48,5 +52,9 @@ private:
 	float dyeSeqsProbRelOut[N_MAX_DYESEQS_IN_STATE]; //Variables for decoding most likely output
 	unsigned int dyeSeqsProbRelOutCount;
 	void getRelProbs(State& s);
+	
+	//To reorder in memory.
+	void reOrderDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& peptideIdx, vector<unsigned int>& relCounts);
+	array<unsigned int, N_COLORS> getNDyeSeq(string& dyeSeq);
 
 };

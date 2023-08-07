@@ -35,6 +35,8 @@ void InitStates::init(vector<char> *dyeSeqsTogheterO, vector<unsigned long>* dye
 #else
 	getMaxNi();
 	generatePosKsInit();
+	possibleNextKs.reserve(200);
+	possibleNextKsAux.reserve(200);
 #endif 
 }
 
@@ -326,8 +328,9 @@ void InitStates::pushInitStateInfo(InitStateInfo& aux)
 
 void InitStates::exploreOtherKs(InitStateInfo& stateInfo,unsigned int sKBest[N_COLORS], float obs[N_COLORS]) //breadth first search
 {
-	vector<array<unsigned int, N_COLORS>> possibleNextKs; //Max number of next ones can be 2*colors for the beginning.
-	vector<array<unsigned int, N_COLORS>> possibleNextKsAux;
+	possibleNextKs.clear(); //For exploration of other Ks!
+	possibleNextKsAux.clear();
+	
 	bool finishedSearch = false;
 	getPosNextKValues(possibleNextKs, sKBest, sKBest, initIdealStates[stateInfo.stateIndex].N);
 	InitStateInfo aux = stateInfo;
@@ -347,10 +350,15 @@ void InitStates::exploreOtherKs(InitStateInfo& stateInfo,unsigned int sKBest[N_C
 				
 			}
 		}
+		possibleNextKs.clear();
 		vector<array<unsigned int, N_COLORS>>::iterator it = unique(possibleNextKsAux.begin(), possibleNextKsAux.end()); //Items can be repeated!
-		possibleNextKsAux.resize(distance(possibleNextKsAux.begin(), it)); // 10 20 30 20 10
-		possibleNextKs = possibleNextKsAux;
+		for (auto auxIt = possibleNextKsAux.begin(); auxIt != it; ++auxIt)
+			possibleNextKs.push_back(*auxIt);
 		possibleNextKsAux.clear();
+		//vector<array<unsigned int, N_COLORS>>::iterator it = unique(possibleNextKsAux.begin(), possibleNextKsAux.end()); //Items can be repeated!
+		//possibleNextKsAux.resize(distance(possibleNextKsAux.begin(), it)); // 10 20 30 20 10
+		//possibleNextKs = possibleNextKsAux;
+		//possibleNextKsAux.clear();
 	}
 }
 

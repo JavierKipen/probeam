@@ -23,3 +23,5 @@
 #define DEF_NBEAM 30
 #define ZSCOREDEFAULT 5
 #define PRUN_WORST_Z_SCORE //(FOR PRUNING)If not commented looks at the worst z score, if commented looks at the sum of z scores 
+
+//#define ESTIMATE_IFED_TIMES //When defined, keeps track of the timings for the calculations of IFEDs.

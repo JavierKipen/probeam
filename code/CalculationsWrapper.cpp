@@ -5,6 +5,7 @@
 #include <algorithm>    // std::sort, std::stable_sort
 #include "StateFunctions.h"
 #include <cmath>    
+#include <chrono>
 
 #define DYE_BY_MEM_IDX(i) (dyeSeqsTogheter[dyeSeqsStartIdxsInMem[(i)]])
 #define L1NORM_MAX 5
@@ -14,6 +15,8 @@
 
 unsigned int nChoosek(unsigned int n, unsigned int k);
 void highestKValsInArray(float* array, unsigned long n, unsigned int k, unsigned long* outBestIdx);
+//vector<unsigned int> argsortf(const vector<float>& vf);
+bool customSort(const pair<unsigned int, string> firstElem, const pair<unsigned int, string> secondElem);
 
 CalculationsWrapper::CalculationsWrapper()
 {
@@ -34,11 +37,18 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 	relProbs.reserve(relCounts.size());
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
 	dyeSeqsCounts = relCounts;
-	reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
+
+	reOrderDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
+	//reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
 	InfoForEdmanDegradation aux;
 	for (unsigned int i = 0; i < nBeam; i++)
 		infosEdman.push_back(aux);
 	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs ,&dyeSeqsCounts, nBeam);
+
+#ifdef ESTIMATE_IFED_TIMES
+	initMapTimeIFED();
+#endif // ESTIMATE_IFED_TIMES
+
 }
 
 void CalculationsWrapper::reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts)
@@ -108,6 +118,9 @@ void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates
 	for (unsigned int k = 0; k < nStates; k++) //For every state that we consider
 	{
 		State& s = sV[k];
+		#ifdef ESTIMATE_IFED_TIMES
+			auto start = chrono::high_resolution_clock::now();
+		#endif // ESTIMATE_IFED_TIMES
 		totalProb = 0;
 		infosEdman[k].clear();//Clears variable
 		for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
@@ -147,6 +160,11 @@ void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates
 			for (unsigned int j = 0; j < N_COLORS; j++)
 				infosEdman[k].pRemDye[j] /= totalProb;
 		}
+	#ifdef ESTIMATE_IFED_TIMES
+		auto stop = chrono::high_resolution_clock::now();
+		auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
+		IFEDTimeOfState[getStateOriginalN(s)] += ((float)duration.count()) * 1e-9;
+	#endif // ESTIMATE_IFED_TIMES
 	}
 	//if (abs((infoEdman.pRemNonLum + infoEdman.pRemDye[0] + infoEdman.pRemDye[1] + infoEdman.pRemDye[2])-1) > 0.1)
 	//	cout << "This shouldnt happen";
@@ -217,6 +235,58 @@ void  CalculationsWrapper::getRelProbs(State& s)
 		dyeSeqsProbRelOut[i] /= normFactor;
 }
 
+void  CalculationsWrapper::initMapTimeIFED()
+{
+	array<unsigned int, N_COLORS> auxN;
+	for (auto it : is.initIdealStates)
+	{
+		for (unsigned int i = 0; i < N_COLORS; i++)
+			auxN[i] = it.N[i];
+		IFEDTimeOfState[auxN] = 0;
+	}
+}
+
+array<unsigned int, N_COLORS> CalculationsWrapper::getStateOriginalN(State& s)
+{
+	array<unsigned int, N_COLORS> origN;
+	for (unsigned int i = 0; i < N_COLORS; i++)
+		origN[i] = s.N[i];
+	for (unsigned int i = 0; i < s.RCharCount; i++)
+	{
+		if (s.R[i] != '.')
+		{
+			origN[(s.R[i] - '0')]++;
+		}
+	}
+	return origN;
+}
+
+void CalculationsWrapper::orderCompTimesIFED()
+{
+	vector<array<unsigned int, N_COLORS>> IdealStateNs;
+	vector<float> PercTimeSpent;
+	float normVal = 0;
+	for (auto it = IFEDTimeOfState.begin(); it != IFEDTimeOfState.end(); ++it)
+	{
+		IdealStateNs.push_back(it->first);
+		PercTimeSpent.push_back(it->second);
+		normVal += it->second;
+	}
+	for (unsigned int i = 0; i < PercTimeSpent.size(); i++)
+		PercTimeSpent[i] /= normVal;
+	vector<unsigned int> IdxSort = argsortf(PercTimeSpent);
+
+	vector<float> PercTimeSpentOrdered= PercTimeSpent;
+	vector<array<unsigned int, N_COLORS>> IdealStateNsOrdered = IdealStateNs;
+	for (unsigned int i = 0; i < PercTimeSpent.size(); i++)
+	{
+		PercTimeSpentOrdered[i] = PercTimeSpent[IdxSort[i]];
+		IdealStateNsOrdered[i] = IdealStateNs[IdxSort[i]];
+	}
+
+}
+
+
 void CalculationsWrapper::clear()
 {
 	is.clear();
@@ -225,4 +295,62 @@ void CalculationsWrapper::clear()
 }
 
 
+//Reordering of dye sequences in memory 
 
+void CalculationsWrapper::reOrderDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& peptideIdx, vector<unsigned int>& relCounts)
+{
+	map<array<unsigned int, N_COLORS>, list<pair<unsigned int,string>>> groupingDyeSeqs;
+	n_peptides = 0;
+	unsigned long countChars = 0;
+
+	for (unsigned int i = 0; i < peptideIdx.size(); i++)
+	{
+		pair<unsigned int, string> aux(i, dyeSeqs[i]);
+		groupingDyeSeqs[getNDyeSeq(dyeSeqs[i])].push_back(aux);
+	}
+		
+	//Here N could be ordered in a specific way too.
+	for (auto Nit : groupingDyeSeqs)
+	{
+		list<pair<unsigned int, string>> dyeSeqsForGivenN = Nit.second;
+		dyeSeqsForGivenN.sort(customSort);
+		for (auto it = dyeSeqsForGivenN.begin(); it != dyeSeqsForGivenN.end(); ++it)
+		{
+			string s = it->second;
+			unsigned int origDyeSeqIdx = it->first;
+			relProbs.push_back(relCounts[origDyeSeqIdx]);
+			n_peptides += relCounts[origDyeSeqIdx];
+			dyeSeqsStartIdxsInMem.push_back(countChars); //Start of the new index
+			copy(s.begin(), s.end(), back_inserter(dyeSeqsTogheter));
+			dyeSeqsTogheter.push_back('\n');
+			countChars += s.size() + 1;
+			dyeSeqsIdxOUT.push_back(peptideIdx[origDyeSeqIdx]);
+		}
+	}
+	dyeSeqsStartIdxsInMem.push_back(countChars); //Final ID (no state should use it, but simplifies some calculations)
+	for (unsigned int i = 0; i < relProbs.size(); i++)
+		relProbs[i] /= (float)n_peptides;
+}
+
+array<unsigned int, N_COLORS> CalculationsWrapper::getNDyeSeq(string &dyeSeq)
+{
+	array<unsigned int, N_COLORS> retVal;
+	for(unsigned int i=0;i<N_COLORS;i++)
+		retVal[i]=count(dyeSeq.begin(), dyeSeq.end(), '0'+i);
+	return retVal;
+}
+
+bool customSort(const pair<unsigned int, string> firstElem, const pair<unsigned int, string> secondElem)
+{
+	return firstElem.second< secondElem.second;
+}
+
+/*
+
+vector<unsigned int> argsortf(const vector<float>& vf) { //Argsort for a float vector. based on https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
+	vector<unsigned int> idx(vf.size());// initialize original index locations
+	iota(idx.begin(), idx.end(), 0);
+	stable_sort(idx.begin(), idx.end(),
+		[&vf](unsigned int i1, unsigned int i2) {return vf[i1] > vf[i2]; });
+	return idx;
+}*/

@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 			Decoder decoder(argParser.nBeam,argParser.cutoffTh);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
 			timeRunAndSave(decoder, dataIO);
-			//checkReducedData(decoder, dataIO, 1000);
+			//checkReducedData(decoder, dataIO, 5000);
 			//checkWholeDataset(decoder, dataIO);
 		}
 		else
@@ -94,6 +94,7 @@ void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 	//Now veryifing accuracy
 	float dyeSeqAcc, pepAcc;
 	dataIO.createMap();
+	//dec.cw.orderCompTimesIFED();
 	getAcc(&dyeSeqAcc, &pepAcc, yPred, dataIO.trueIDs, dataIO.dyeSeqsCountsMap);
 	cout << "Peptide accuracy: " + to_string(pepAcc) + " - Dye sequence accuracy: " + to_string(dyeSeqAcc) << endl;
 	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
