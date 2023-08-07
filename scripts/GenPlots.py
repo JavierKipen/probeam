@@ -10,11 +10,11 @@ import pandas as pd
 from sklearn import metrics
 import time
 import matplotlib.pyplot as plt
-import ipdb
+#import ipdb
 from matplotlib.colors import LogNorm
 
 #datasets_path="C:/Users/JK-WORK/Documents/modifWhatprot/Own/HMM_modif/Datasets/ForPaper/";
-datasets_path="data/NormDatasets/"
+res_ds="../results/"
 
 n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
 
@@ -33,6 +33,37 @@ def get_crossval_acc(true_ids, y_pred,dye_seqs_map,n_folds=10):
     return np.mean(accs),np.std(accs)/np.sqrt(n_folds)
 
 ###Figure 1 ####
+
+df_probeam=pd.read_csv(res_ds+"NbTable20000Prot.csv")
+df_probeam=df_probeam.sort_values(by=["N beam"])
+df_whatprot=pd.read_csv(res_ds+"WhatprotParamSweepResults.csv")
+df_whatprot_t_info=df_whatprot[df_whatprot["t"] != 0 ] #Keeps only rows with time information (some simulations may have not ended and therefore the time of them is not available.)
+df_whatprot_def_params=df_whatprot[(df_whatprot["K"] == 10000) & (df_whatprot["H"] == 1000)]; #Results from the default params
+df_whatprot_t_info=df_whatprot_t_info.drop(df_whatprot_def_params.index[0]) #Drops the one measurement of the default params
+
+
+plt.rcParams.update({
+    "text.usetex": True})
+plt.figure(dpi=300)
+plt.errorbar(df_probeam["Accuracy"].to_numpy(),df_probeam["Microsecs per read"].to_numpy()*1e-3,xerr=df_probeam["Accuracy std"].to_numpy(), color="blue",marker="o",linestyle="--",label="probeam")
+plt.errorbar(df_whatprot_t_info["Acc"].to_numpy(),df_whatprot_t_info["t"].to_numpy()*1e3,xerr=df_whatprot_t_info["Acc std"].to_numpy(), color="red",marker="x",linestyle='None',label="whatprot")
+
+def_params_acc=df_whatprot_def_params["Acc"].to_numpy()[0];
+def_params_acc_std=df_whatprot_def_params["Acc std"].to_numpy()[0];
+
+plt.axvline(x = def_params_acc, color = 'g',label="whatprot default accuracy")
+plt.axvline(x = def_params_acc+def_params_acc_std, color = 'g',linestyle="--",label="whatprot default accuracy uncertainty")
+plt.axvline(x = def_params_acc-def_params_acc_std, color = 'g',linestyle="--")
+
+plt.xlabel("Accuracy")
+plt.ylabel("Runtime per read [ms]")
+plt.grid()
+plt.legend(loc='center left')
+plt.show()
+plt.savefig("results/AccuracyVsRuntime.png")
+
+
+"""
 
 def get_timing_res(path,n_samples):
     f = open(path, "r")
@@ -100,6 +131,7 @@ plt.xlabel("Number of proteins")
 plt.ylabel("Run time for a single read [s]")
 plt.grid()
 plt.savefig("results/Runtime.png")
+"""
 
 ###Figure 2 ####
 #ipdb.set_trace()
