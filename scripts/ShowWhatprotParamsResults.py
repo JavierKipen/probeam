@@ -92,3 +92,5 @@ dict= {'K': ks, 'H' : hs, 'Acc': Accs,'Acc std': std_accs, 't': ts}
 df = pd.DataFrame(dict)
 
 print(df.sort_values(by=["t","K","H"]))
+
+df.to_csv("../results/WhatprotParamSweepResults.csv",index=False)

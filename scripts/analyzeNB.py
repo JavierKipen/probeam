@@ -40,4 +40,4 @@ for i in range(len(df)):
 print("Results in dataset " + path_big_ds)
 print(df)
 
-#df.to_csv("results/NbTable20000Prot.csv",index=False)
+df.to_csv("results/NbTable20000Prot.csv",index=False)
