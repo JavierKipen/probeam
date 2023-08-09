@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 #datasets_path="C:/Users/JK-WORK/Documents/modifWhatprot/Own/HMM_modif/Datasets/ForPaper/";
-res_ds="../results/"
+res_path="../results/"
+data_path="../data/"
 
 n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
 
@@ -34,9 +35,9 @@ def get_crossval_acc(true_ids, y_pred,dye_seqs_map,n_folds=10):
 
 ###Figure 1 ####
 
-df_probeam=pd.read_csv(res_ds+"NbTable20000Prot.csv")
+df_probeam=pd.read_csv(res_path+"NbTable20000Prot.csv")
 df_probeam=df_probeam.sort_values(by=["N beam"])
-df_whatprot=pd.read_csv(res_ds+"WhatprotParamSweepResults.csv")
+df_whatprot=pd.read_csv(res_path+"WhatprotParamSweepResults.csv")
 df_whatprot_t_info=df_whatprot[df_whatprot["t"] != 0 ] #Keeps only rows with time information (some simulations may have not ended and therefore the time of them is not available.)
 df_whatprot_def_params=df_whatprot[(df_whatprot["K"] == 10000) & (df_whatprot["H"] == 1000)]; #Results from the default params
 df_whatprot_t_info=df_whatprot_t_info.drop(df_whatprot_def_params.index[0]) #Drops the one measurement of the default params
@@ -59,9 +60,10 @@ plt.xlabel("Accuracy")
 plt.ylabel("Runtime per read [ms]")
 plt.grid()
 plt.legend(loc='center left')
+plt.xlim((0.0118, 0.0128))
+plt.ylim((0,10))
 plt.show()
-plt.savefig("../results/AccuracyVsRuntime.png")
-
+plt.savefig(res_path+"AccuracyVsRuntime.png")
 
 """
 
@@ -135,14 +137,15 @@ plt.savefig("results/Runtime.png")
 
 ###Figure 2 ####
 #ipdb.set_trace()
-"""
-dataset_thousand_path=datasets_path+"1000Prot/";
 
-true_ids =  pd.read_csv(dataset_thousand_path+'true-ids.tsv', sep='\t').to_numpy().flatten()
-HMM = pd.read_csv(dataset_thousand_path+'predictionsHMM.csv')
-y_predHMM=HMM['best_pep_iz'].to_numpy(); 
-y_predHMMScore=HMM['best_pep_score'].to_numpy(); 
-Beam = pd.read_csv(dataset_thousand_path+'BeamSearchPred15.csv')
+#dataset_thousand_path=datasets_path+"1000Prot/";
+ds_path=data_path+"LongDatasets/20000Prot/";
+
+true_ids =  pd.read_csv(ds_path+'true-ids.tsv', sep='\t').to_numpy().flatten()
+preds_whatprot = pd.read_csv(ds_path+'predictionsHybrid_K_10000_H_1000.csv')
+y_pred_whatprot=preds_whatprot['best_pep_iz'].to_numpy(); 
+y_pred_score_whatprot=preds_whatprot['best_pep_score'].to_numpy(); 
+Beam = pd.read_csv(ds_path+'BeamSearchPred60.csv')
 y_predB=Beam[' best_pep_iz'].to_numpy(); 
 y_predBScore=Beam[' best_pep_score'].to_numpy(); 
 
@@ -159,9 +162,9 @@ def doHist2D(ypredX,ypredY,varX,varY,labelX,labelY,ids):
     plt.xlabel(labelX)
     plt.ylabel(labelY)
 
-doHist2D(y_predB,y_predHMM,y_predBScore,y_predHMMScore,r'Beam $\textrm{N}_{\textrm{B}}=15$',"HMM",true_ids)
-plt.savefig("results/histComp.eps")
-"""
+doHist2D(y_predB,y_pred_whatprot,y_predBScore,y_pred_score_whatprot,r'Beam $\textrm{N}_{\textrm{B}}=60$',"Whatprot",true_ids)
+plt.savefig(res_path+"histComp.png")
+
 ##Accuracy for table 
 
 """
