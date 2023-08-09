@@ -60,7 +60,7 @@ plt.ylabel("Runtime per read [ms]")
 plt.grid()
 plt.legend(loc='center left')
 plt.show()
-plt.savefig("results/AccuracyVsRuntime.png")
+plt.savefig("../results/AccuracyVsRuntime.png")
 
 
 """
