@@ -71,7 +71,7 @@ for n in n_proteins:
 """
 
 #Generate long datasets:
-n_proteins_long=20000
+n_proteins_long=1000
 protein_folder=path_datasets_long+str(n_proteins_long)+"Prot/"
 if not os.path.isdir(protein_folder): ##If folder doesnt exist
     os.mkdir(protein_folder)
