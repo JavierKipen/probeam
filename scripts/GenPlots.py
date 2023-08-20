@@ -40,30 +40,34 @@ df_probeam=df_probeam.sort_values(by=["N beam"])
 df_whatprot=pd.read_csv(res_path+"WhatprotParamSweepResults.csv")
 df_whatprot_t_info=df_whatprot[df_whatprot["t"] != 0 ] #Keeps only rows with time information (some simulations may have not ended and therefore the time of them is not available.)
 df_whatprot_def_params=df_whatprot[(df_whatprot["K"] == 10000) & (df_whatprot["H"] == 1000)]; #Results from the default params
-df_whatprot_t_info=df_whatprot_t_info.drop(df_whatprot_def_params.index[0]) #Drops the one measurement of the default params
+
+#df_whatprot_t_info=df_whatprot_t_info.drop(df_whatprot_def_params.index[0]) #Drops the one measurement of the default params
 
 
 plt.rcParams.update({
     "text.usetex": True})
 plt.figure(dpi=300)
-plt.errorbar(df_probeam["Accuracy"].to_numpy(),df_probeam["Microsecs per read"].to_numpy()*1e-3,xerr=df_probeam["Accuracy std"].to_numpy(), color="blue",marker="o",linestyle="--",label="probeam")
-plt.errorbar(df_whatprot_t_info["Acc"].to_numpy(),df_whatprot_t_info["t"].to_numpy()*1e3,xerr=df_whatprot_t_info["Acc std"].to_numpy(), color="red",marker="x",linestyle='None',label="whatprot")
+plt.errorbar(df_probeam["Accuracy"].to_numpy()*100,df_probeam["Microsecs per read"].to_numpy()*1e-3,xerr=df_probeam["Accuracy std"].to_numpy()*100, color="blue",marker="o",linestyle="--",label="probeam")
+plt.errorbar(df_whatprot_t_info["Acc"].to_numpy()*100,df_whatprot_t_info["t"].to_numpy()*1e3,xerr=df_whatprot_t_info["Acc std"].to_numpy()*100, color="red",marker="x",linestyle='None',label="whatprot")
 
-def_params_acc=df_whatprot_def_params["Acc"].to_numpy()[0];
-def_params_acc_std=df_whatprot_def_params["Acc std"].to_numpy()[0];
+def_params_acc=df_whatprot_def_params["Acc"].to_numpy()[0]*100;
+def_params_acc_std=df_whatprot_def_params["Acc std"].to_numpy()[0]*100;
 
 plt.axvline(x = def_params_acc, color = 'g',label="whatprot default accuracy")
 plt.axvline(x = def_params_acc+def_params_acc_std, color = 'g',linestyle="--",label="whatprot default accuracy uncertainty")
 plt.axvline(x = def_params_acc-def_params_acc_std, color = 'g',linestyle="--")
 
-plt.xlabel("Accuracy")
+plt.xlabel("Accuracy [\%]")
 plt.ylabel("Runtime per read [ms]")
 plt.grid()
 plt.legend(loc='upper left')
-plt.xlim((0.0118, 0.0128))
-plt.ylim((0,10))
-plt.show()
+plt.yscale('log')
+#plt.xscale('log')
+plt.xlim((1.18, 1.28))
+#plt.ylim((0,10))
 plt.savefig(res_path+"AccuracyVsRuntime.png")
+plt.show()
+
 
 """
 
