@@ -65,7 +65,7 @@ plt.yscale('log')
 #plt.xscale('log')
 plt.xlim((1.18, 1.28))
 #plt.ylim((0,10))
-plt.savefig(res_path+"AccuracyVsRuntime.png")
+plt.savefig(res_path+"AccuracyVsRuntime.tiff")
 plt.show()
 
 
@@ -167,7 +167,7 @@ def doHist2D(ypredX,ypredY,varX,varY,labelX,labelY,ids):
     plt.ylabel(labelY)
 
 doHist2D(y_predB,y_pred_whatprot,y_predBScore,y_pred_score_whatprot,r'Beam $\textrm{N}_{\textrm{B}}=60$',"Whatprot",true_ids)
-plt.savefig(res_path+"histComp.png")
+plt.savefig(res_path+"histComp.tiff")
 
 ##Accuracy for table 
 
