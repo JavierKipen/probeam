@@ -5,6 +5,7 @@
 #include <algorithm>    // std::sort, std::stable_sort
 #include "StateFunctions.h"
 #include <cmath>    
+#include <chrono>
 
 #define DYE_BY_MEM_IDX(i) (dyeSeqsTogheter[dyeSeqsStartIdxsInMem[(i)]])
 #define L1NORM_MAX 5
@@ -14,6 +15,8 @@
 
 unsigned int nChoosek(unsigned int n, unsigned int k);
 void highestKValsInArray(float* array, unsigned long n, unsigned int k, unsigned long* outBestIdx);
+//vector<unsigned int> argsortf(const vector<float>& vf);
+bool customSort(const pair<unsigned int, string> firstElem, const pair<unsigned int, string> secondElem);
 
 CalculationsWrapper::CalculationsWrapper()
 {
@@ -24,25 +27,47 @@ CalculationsWrapper::CalculationsWrapper()
 void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts,unsigned int nBeam)
 {
 	l1normMaxDyeLoss = L1NORM_MAX; // Could be a parameter to run 
+	vector<float> vect(dyeSeqsIdx.size(), 0);
+	dyeSeqsOutProb = vect;
 	//Mem reservation
 	dyeSeqsTogheter.reserve(1000000);
 	KDyeLoss.reserve(100);
 	KProbsDyeLoss.reserve(100);
+	dyeSeqsOut.reserve(20000); //Vector to calculate the final peptide probs
 	relProbs.reserve(relCounts.size());
 	dyeSeqsStartIdxsInMem.reserve(relCounts.size());
-	reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
-	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs,nBeam);
+	dyeSeqsCounts = relCounts;
+
+	reOrderDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
+	//reformatDyeSeqs(dyeSeqs, dyeSeqsIdx, relCounts);
+	InfoForEdmanDegradation aux;
+	for (unsigned int i = 0; i < nBeam; i++)
+		infosEdman.push_back(aux);
+	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs ,&dyeSeqsCounts, nBeam);
+
+#ifdef ESTIMATE_IFED_TIMES
+	initMapTimeIFED();
+#endif // ESTIMATE_IFED_TIMES
+
 }
 
 void CalculationsWrapper::reformatDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& dyeSeqsIdx, vector<unsigned int>& relCounts)
 {
-	float normFactorRel = 0;
+	n_peptides = 0;
 	unsigned long countChars = 0;
 	//Reformatting data.
+	
 	for (unsigned int i = 0; i < relCounts.size(); i++)
-		normFactorRel += relCounts[i];
-	for (unsigned int i = 0; i < relCounts.size(); i++)
-		relProbs.push_back(((float)relCounts[i]) / normFactorRel);
+	{
+		relProbs.push_back(relCounts[i]);
+		n_peptides += relCounts[i];
+	}
+		
+
+	for (unsigned int i = 0; i < relProbs.size(); i++)
+		relProbs[i] /= n_peptides;
+
+
 
 	for (unsigned int i = 0; i < dyeSeqs.size(); i++)
 	{
@@ -70,83 +95,76 @@ string CalculationsWrapper::internalDyeSeqIdToStr(unsigned int id)
 }
 
 
-void CalculationsWrapper::obtainKDyeLoss(State& s, float obs[N_COLORS])
+float CalculationsWrapper::calcDyeLossProb(unsigned int Kinit[N_COLORS], unsigned int Kend[N_COLORS])
 {
-	unsigned int count = 0;
-	float comb_factor;
-	unsigned int dif;
-	unsigned int totalInitDyes = s.K[0] + s.K[1] + s.K[2];
+	float retVal = 0;
+	unsigned int totalInitDyes = Kinit[0] + Kinit[1] + Kinit[2];
+	float comb_factor = (float) (nChoosek(Kinit[0], Kend[0]) * nChoosek(Kinit[1], Kend[1]) * nChoosek(Kinit[2], Kend[2])); //Combinational factor of picking which dyes were not attached
+	unsigned int dif = totalInitDyes - Kend[0] - Kend[1] - Kend[2];
+	retVal=comb_factor * (float)pow(L, dif) * (float)pow((1 - L), totalInitDyes - dif);
 
-	float L1dif_i, L1dif_j, L1dif_k;
-
-	KDyeLoss.clear();
-	KProbsDyeLoss.clear();
-
-	for (unsigned int i = 0; i < s.K[0] + 1; i++) { //Loops with all possible Ks that could be
-		L1dif_i = abs((obs[0] / MU) - i);
-		for (unsigned int j = 0; j < s.K[1] + 1; j++) {
-			L1dif_j = abs((obs[1] / MU) - j);
-			for (unsigned int k = 0; k < s.K[2] + 1; k++) {
-				L1dif_k = abs((obs[2] / MU) - k);
-				if ((L1dif_i + L1dif_j + L1dif_k) < l1normMaxDyeLoss || (i == s.K[0] && j==s.K[1] && k==s.K[2]) ) //This K can give an observation probability which is not negligible, but also considers same K to always mantain the number of states.
-				{
-					comb_factor = (float)nChoosek(s.K[0], i) * nChoosek(s.K[1], j) * nChoosek(s.K[2], k); //Combinational factor of picking which dyes were not attached
-					dif = totalInitDyes - i - j - k;
-					array<unsigned int, N_COLORS> aux = { i, j, k };
-					KDyeLoss.push_back(aux);
-					KProbsDyeLoss.push_back((float)comb_factor * (float)pow(L, dif) * (float)pow((1 - L), totalInitDyes - dif));//Probability of initial state
-				}
-			}
-		}
-	}
+	return retVal;
 }
 
-void CalculationsWrapper::getInfoForEdman(State& s)
+void CalculationsWrapper::getInfoForEdman(vector<State>& sV,unsigned int nStates) 
 {
 	string currDyeSeq;
 	float currDyeProb;
-	unsigned int dyeSeqIdx,dyeSeqLen;
+	unsigned int dyeSeqIdx, dyeSeqLen;
 	unsigned long dyeSeqStartInMemIdx;
-	float totalProb=0;
+	float totalProb = 0;
 	bool probFound = false;
 	char nextAA;
-	infoEdman.clear();//Clears variable
-	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
+	for (unsigned int k = 0; k < nStates; k++) //For every state that we consider
 	{
-		dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
-		dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
-		dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
-		currDyeProb = relProbs[dyeSeqIdx];
-		if (dyeSeqLen-1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
+		State& s = sV[k];
+		#ifdef ESTIMATE_IFED_TIMES
+			auto start = chrono::high_resolution_clock::now();
+		#endif // ESTIMATE_IFED_TIMES
+		totalProb = 0;
+		infosEdman[k].clear();//Clears variable
+		for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++) //Iterate over idxs
 		{
-			probFound = true;
-			nextAA = dyeSeqsTogheter[dyeSeqStartInMemIdx + s.RCharCount];
-			if (nextAA == '.')
+			dyeSeqIdx = s.dyeSeqsIdxs[i]; //Index that represent a dye sequence
+			dyeSeqStartInMemIdx = dyeSeqsStartIdxsInMem[dyeSeqIdx]; //Index that shows in our block memory (dyeSeqsTogheter) where our dye sequence starts 
+			dyeSeqLen = dyeSeqsStartIdxsInMem[dyeSeqIdx + 1] - dyeSeqStartInMemIdx;
+			currDyeProb = relProbs[dyeSeqIdx];
+			if (dyeSeqLen - 1 > s.RCharCount) //In case there exists a possibility of removing an aminoacid
 			{
-				infoEdman.nonLumCanBeRemoved = true;
-				infoEdman.dyeSeqsIdxsDot[infoEdman.dyeSeqsIdxsCountDot++] = dyeSeqIdx;
-				infoEdman.pRemNonLum += currDyeProb;
-			}
-			else
-			{
-				for (unsigned int j = 0; j < N_COLORS; j++)
+				probFound = true;
+				nextAA = dyeSeqsTogheter[dyeSeqStartInMemIdx + s.RCharCount];
+				if (nextAA == '.')
 				{
-					if (nextAA == (j + '0'))
+					infosEdman[k].nonLumCanBeRemoved = true;
+					infosEdman[k].dyeSeqsIdxsDot[infosEdman[k].dyeSeqsIdxsCountDot++] = dyeSeqIdx;
+					infosEdman[k].pRemNonLum += currDyeProb;
+				}
+				else
+				{
+					for (unsigned int j = 0; j < N_COLORS; j++)
 					{
-						infoEdman.dyeCanBeRemoved[j] = true;
-						infoEdman.dyeSeqsIdxs[j][infoEdman.dyeSeqsIdxsCount[j]++]= dyeSeqIdx;
-						infoEdman.pRemDye[j] += currDyeProb;
+						if (nextAA == (j + '0'))
+						{
+							infosEdman[k].dyeCanBeRemoved[j] = true;
+							infosEdman[k].dyeSeqsIdxs[j][infosEdman[k].dyeSeqsIdxsCount[j]++] = dyeSeqIdx;
+							infosEdman[k].pRemDye[j] += currDyeProb;
+						}
 					}
 				}
+				totalProb += currDyeProb;
 			}
-			totalProb += currDyeProb;
 		}
-	}
-	if (probFound)
-	{
-		infoEdman.pRemNonLum /= totalProb;//If any of the probs then normalize probabilities
-		for (unsigned int j = 0; j < N_COLORS; j++)
-			infoEdman.pRemDye[j] /= totalProb;
+		if (probFound)
+		{
+			infosEdman[k].pRemNonLum /= totalProb;//If any of the probs then normalize probabilities
+			for (unsigned int j = 0; j < N_COLORS; j++)
+				infosEdman[k].pRemDye[j] /= totalProb;
+		}
+	#ifdef ESTIMATE_IFED_TIMES
+		auto stop = chrono::high_resolution_clock::now();
+		auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
+		IFEDTimeOfState[getStateOriginalN(s)] += ((float)duration.count()) * 1e-9;
+	#endif // ESTIMATE_IFED_TIMES
 	}
 	//if (abs((infoEdman.pRemNonLum + infoEdman.pRemDye[0] + infoEdman.pRemDye[1] + infoEdman.pRemDye[2])-1) > 0.1)
 	//	cout << "This shouldnt happen";
@@ -154,32 +172,12 @@ void CalculationsWrapper::getInfoForEdman(State& s)
 
 }
 
-void CalculationsWrapper::getObsLogProbs(vector<float>* outLogProbs, vector<State>& auxStates, float obs[N_COLORS])
-{
-	float stds_loc[N_COLORS];
-	float means_loc[N_COLORS];
-	float auxLogProbObs;
 
-	for (unsigned int i = 0; i < auxStates.size(); i++)
-	{
-		State& Si = auxStates[i];
-		auxLogProbObs = 0;
-		means_loc[0] = getMeanState(Si, 0); means_loc[1] = getMeanState(Si, 1); means_loc[2] = getMeanState(Si, 2);
-		stds_loc[0] = getStdState(Si, 0); stds_loc[1] = getStdState(Si, 1); stds_loc[2] = getStdState(Si, 2);
-		for (unsigned long j = 0; j < N_COLORS; j++)
-			auxLogProbObs -= (float)pow((obs[j] - means_loc[j]) / stds_loc[j], 2);
-		auxLogProbObs /= 2;
-		auxLogProbObs -= (float)log(LOGTERM_CONST * stds_loc[0] * stds_loc[1] * stds_loc[2]);
-		outLogProbs->push_back(auxLogProbObs); //Pushes back logprob of obs
-	}
-}
-
-pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs)
+pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs,unsigned int currNStates)
 {
-	map<unsigned int, float> possibleOutputs;
 	pair<unsigned int, float> output;
 	float normFactor = 0;
-	unsigned int nBeam = finalStatesLogProbs.size();
+	unsigned int nBeam = currNStates;
 	unsigned int mostLikelyOut;
 	float mostLikelyOutP = -1;
 	//Normalizing last state probabilities
@@ -198,24 +196,28 @@ pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State
 		for (unsigned int d_idx = 0; d_idx < s.dyeSeqsIdxsCount; d_idx++)
 		{
 			unsigned int dyeSeqIdx = s.dyeSeqsIdxs[d_idx];
-			auto it = possibleOutputs.find(dyeSeqIdx);
-			if (it == possibleOutputs.end()) //Idx of dye seq not found
-				possibleOutputs[dyeSeqIdx] = finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx];
-			else
-				possibleOutputs[dyeSeqIdx] += finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx];
+			unsigned int outDyesIdx = 0;
+			dyeSeqsOut.push_back(dyeSeqIdx);
+			dyeSeqsOutProb[dyeSeqIdx] += (finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx]);
 		}
 
 	}
+	//Remove repeated sequences
+	vector<unsigned int>::iterator ip;
+	ip = unique(dyeSeqsOut.begin(), dyeSeqsOut.end());
+	dyeSeqsOut.resize(distance(dyeSeqsOut.begin(), ip));
+
 	//Picking most likely
-	for (auto it = possibleOutputs.begin(); it != possibleOutputs.end(); it++)
+	for (unsigned int i=0;i< dyeSeqsOut.size();i++)
 	{
-		if (it->second > mostLikelyOutP)
+		if (dyeSeqsOutProb[dyeSeqsOut[i]] > mostLikelyOutP)
 		{
-			mostLikelyOut = it->first;
-			mostLikelyOutP = it->second;
+			mostLikelyOut = dyeSeqsOut[i];
+			mostLikelyOutP = dyeSeqsOutProb[dyeSeqsOut[i]];
 		}
+		dyeSeqsOutProb[dyeSeqsOut[i]] = 0; //Resets output var
 	}
-	string picked = internalDyeSeqIdToStr(mostLikelyOut);
+	//string picked = internalDyeSeqIdToStr(mostLikelyOut);
 	output.first = dyeSeqsIdxOUT[mostLikelyOut];
 	output.second = mostLikelyOutP;
 	return output;
@@ -226,17 +228,129 @@ void  CalculationsWrapper::getRelProbs(State& s)
 	float normFactor=0;
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 	{
-		dyeSeqsProbRelOut[i] = relProbs[s.dyeSeqsIdxs[i]];
-		normFactor += dyeSeqsProbRelOut[i];
+		dyeSeqsProbRelOut[i] = 1/n_peptides;
+		normFactor += relProbs[s.dyeSeqsIdxs[i]]; //
 	}
 	for (unsigned int i = 0; i < s.dyeSeqsIdxsCount; i++)
 		dyeSeqsProbRelOut[i] /= normFactor;
 }
 
-void CalculationsWrapper::clear()
+void  CalculationsWrapper::initMapTimeIFED()
 {
-	is.clear();
+	array<unsigned int, N_COLORS> auxN;
+	for (auto it : is.initIdealStates)
+	{
+		for (unsigned int i = 0; i < N_COLORS; i++)
+			auxN[i] = it.N[i];
+		IFEDTimeOfState[auxN] = 0;
+	}
+}
+
+array<unsigned int, N_COLORS> CalculationsWrapper::getStateOriginalN(State& s)
+{
+	array<unsigned int, N_COLORS> origN;
+	for (unsigned int i = 0; i < N_COLORS; i++)
+		origN[i] = s.N[i];
+	for (unsigned int i = 0; i < s.RCharCount; i++)
+	{
+		if (s.R[i] != '.')
+		{
+			origN[(s.R[i] - '0')]++;
+		}
+	}
+	return origN;
+}
+
+void CalculationsWrapper::orderCompTimesIFED()
+{
+	vector<array<unsigned int, N_COLORS>> IdealStateNs;
+	vector<float> PercTimeSpent;
+	float normVal = 0;
+	for (auto it = IFEDTimeOfState.begin(); it != IFEDTimeOfState.end(); ++it)
+	{
+		IdealStateNs.push_back(it->first);
+		PercTimeSpent.push_back(it->second);
+		normVal += it->second;
+	}
+	for (unsigned int i = 0; i < PercTimeSpent.size(); i++)
+		PercTimeSpent[i] /= normVal;
+	vector<unsigned int> IdxSort = argsortf(PercTimeSpent);
+
+	vector<float> PercTimeSpentOrdered= PercTimeSpent;
+	vector<array<unsigned int, N_COLORS>> IdealStateNsOrdered = IdealStateNs;
+	for (unsigned int i = 0; i < PercTimeSpent.size(); i++)
+	{
+		PercTimeSpentOrdered[i] = PercTimeSpent[IdxSort[i]];
+		IdealStateNsOrdered[i] = IdealStateNs[IdxSort[i]];
+	}
+
 }
 
 
+void CalculationsWrapper::clear()
+{
+	is.clear();
+	dyeSeqsOut.clear(); //Vector to calculate the final peptide probs
 
+}
+
+
+//Reordering of dye sequences in memory 
+
+void CalculationsWrapper::reOrderDyeSeqs(vector<string>& dyeSeqs, vector<unsigned int>& peptideIdx, vector<unsigned int>& relCounts)
+{
+	map<array<unsigned int, N_COLORS>, list<pair<unsigned int,string>>> groupingDyeSeqs;
+	n_peptides = 0;
+	unsigned long countChars = 0;
+
+	for (unsigned int i = 0; i < peptideIdx.size(); i++)
+	{
+		pair<unsigned int, string> aux(i, dyeSeqs[i]);
+		groupingDyeSeqs[getNDyeSeq(dyeSeqs[i])].push_back(aux);
+	}
+		
+	//Here N could be ordered in a specific way too.
+	for (auto Nit : groupingDyeSeqs)
+	{
+		list<pair<unsigned int, string>> dyeSeqsForGivenN = Nit.second;
+		dyeSeqsForGivenN.sort(customSort);
+		for (auto it = dyeSeqsForGivenN.begin(); it != dyeSeqsForGivenN.end(); ++it)
+		{
+			string s = it->second;
+			unsigned int origDyeSeqIdx = it->first;
+			relProbs.push_back(relCounts[origDyeSeqIdx]);
+			n_peptides += relCounts[origDyeSeqIdx];
+			dyeSeqsStartIdxsInMem.push_back(countChars); //Start of the new index
+			copy(s.begin(), s.end(), back_inserter(dyeSeqsTogheter));
+			dyeSeqsTogheter.push_back('\n');
+			countChars += s.size() + 1;
+			dyeSeqsIdxOUT.push_back(peptideIdx[origDyeSeqIdx]);
+		}
+	}
+	dyeSeqsStartIdxsInMem.push_back(countChars); //Final ID (no state should use it, but simplifies some calculations)
+	for (unsigned int i = 0; i < relProbs.size(); i++)
+		relProbs[i] /= (float)n_peptides;
+}
+
+array<unsigned int, N_COLORS> CalculationsWrapper::getNDyeSeq(string &dyeSeq)
+{
+	array<unsigned int, N_COLORS> retVal;
+	for(unsigned int i=0;i<N_COLORS;i++)
+		retVal[i]=count(dyeSeq.begin(), dyeSeq.end(), '0'+i);
+	return retVal;
+}
+
+bool customSort(const pair<unsigned int, string> firstElem, const pair<unsigned int, string> secondElem)
+{
+	return firstElem.second< secondElem.second;
+}
+
+/*
+
+vector<unsigned int> argsortf(const vector<float>& vf) { //Argsort for a float vector. based on https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
+	vector<unsigned int> idx(vf.size());// initialize original index locations
+	iota(idx.begin(), idx.end(), 0);
+	stable_sort(idx.begin(), idx.end(),
+		[&vf](unsigned int i1, unsigned int i2) {return vf[i1] > vf[i2]; });
+	return idx;
+}*/

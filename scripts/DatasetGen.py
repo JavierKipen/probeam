@@ -26,8 +26,8 @@ def erase_contents(folder): #Erase contents of folder
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
-
+n_proteins=[20,50,100,200,500,1000,2000,5000,10000];
+#n_proteins=[20000];
 
 path_datasets=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/"
 path_datasets_norm=path_datasets+"NormDatasets/"
@@ -46,6 +46,7 @@ if not os.path.isdir(path_datasets_long):
     os.mkdir(path_datasets_long)
 
 ##Generate norm datasets
+"""
 for n in n_proteins:
     protein_folder=path_datasets_norm+str(n)+"Prot/"
     if not os.path.isdir(protein_folder): ##If folder doesnt exist
@@ -67,6 +68,8 @@ for n in n_proteins:
     subprocess.run(cmd_gen_dye_tracks, shell=True, check=True)
     #subprocess.run(cmd_sim_rad)
 
+"""
+
 #Generate long datasets:
 n_proteins_long=1000
 protein_folder=path_datasets_long+str(n_proteins_long)+"Prot/"
@@ -87,3 +90,4 @@ cmd_sim_rad = "./bin/whatprot simulate rad -t 10 -g "+str(n_reads_long)+" -P " +
 
 subprocess.run(cmd_sim_rad, shell=True, check=True)
 subprocess.run(cmd_gen_dye_tracks, shell=True, check=True)
+

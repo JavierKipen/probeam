@@ -14,6 +14,8 @@ void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red);
 void checkWholeDataset(Decoder& dec, DataIO &dataIO);
 void timeRunAndSave(Decoder& dec, DataIO& dataIO);
 
+void getAcc(float* dyeSeqAcc, float* pepAcc, vector<unsigned int>& yPred, vector<unsigned int>& yTrue, map<unsigned int, unsigned int> &dyeSeqsCountsMap);
+
 int main(int argc, char* argv[])
 {
 	ArgParser argParser(argc, argv);
@@ -22,10 +24,10 @@ int main(int argc, char* argv[])
 		DataIO dataIO(argParser.folder_path);
 		if (dataIO.initOk)
 		{
-			Decoder decoder(argParser.nBeam);
+			Decoder decoder(argParser.nBeam,argParser.cutoffTh);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
 			timeRunAndSave(decoder, dataIO);
-			//checkReducedData(decoder, dataIO, 2000);
+			//checkReducedData(decoder, dataIO, 5000);
 			//checkWholeDataset(decoder, dataIO);
 		}
 		else
@@ -84,16 +86,17 @@ void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 	for (unsigned int i = 0; i < reduced; i++)
 	{
 		auxRes = dec.decode((float(*)[3])dataIO.reads[i].data());
-		//auxRes = decoder.decode((float(*)[3])dataIO.reads[1].data());
+ 		//auxRes = dec.decode((float(*)[3])dataIO.reads[808].data());
 		yPred.push_back(auxRes.first);
 		yPredProb.push_back(auxRes.second);
 	}
 	auto stop = chrono::high_resolution_clock::now();
-	unsigned int correctCount = 0;
-	for (unsigned int i = 0; i < reduced; i++)
-		if (yPred[i] == dataIO.trueIDs[i])
-			correctCount++;
-	cout << "Accuracy: " + to_string(((float)correctCount) / ((float)reduced)) << endl;
+	//Now veryifing accuracy
+	float dyeSeqAcc, pepAcc;
+	dataIO.createMap();
+	//dec.cw.orderCompTimesIFED();
+	getAcc(&dyeSeqAcc, &pepAcc, yPred, dataIO.trueIDs, dataIO.dyeSeqsCountsMap);
+	cout << "Peptide accuracy: " + to_string(pepAcc) + " - Dye sequence accuracy: " + to_string(dyeSeqAcc) << endl;
 	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
 	cout << "Time Decoding one read: "
 		<< duration.count() / reduced << " microseconds" << endl;
@@ -148,4 +151,24 @@ void timeRunAndSave(Decoder& dec, DataIO& dataIO)
 	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
 	cout << "Time Decoding one read: " << (float)duration.count() / (float)dataIO.reads.size() << " microseconds" << endl;
 	dataIO.savePredictions(dataIO.basePath + "BeamSearchPred"+ to_string(dec.nBeam)+".csv", yPred, yPredProb);
+}
+
+
+
+void getAcc(float* dyeSeqAcc, float* pepAcc, vector<unsigned int>& yPred, vector<unsigned int>& yTrue, map<unsigned int, unsigned int> &dyeSeqsCountsMap)
+{
+	unsigned int count = 0;
+	float countP = 0; //Count for the peptide acc
+	unsigned int n = yPred.size();
+	for (unsigned int i = 0; i < yPred.size(); i++)
+	{
+		if (yPred[i] == yTrue[i])
+		{
+			count++;
+			countP += 1.0 / ((float)dyeSeqsCountsMap[yPred[i]]);
+			//cout << i << endl;
+		}
+	}
+	*dyeSeqAcc = ((float)count) / ((float)n);
+	*pepAcc = countP / ((float)n);
 }

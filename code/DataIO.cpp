@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 
+
 using namespace std;
 
 
@@ -155,5 +156,9 @@ void DataIO::savePredictions(string path, vector<unsigned int> yPred, vector<flo
 	myfile.close();
 }
 
-
+void DataIO::createMap()
+{
+	for (unsigned int i = 0; i < dyeSeqs.size(); i++)
+		dyeSeqsCountsMap.insert(pair<unsigned int, unsigned int>(dyeSeqsIdxs[i], dyeSeqsCounts[i]));
+}
 

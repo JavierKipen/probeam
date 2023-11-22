@@ -35,8 +35,9 @@ def get_proc_time_beam(outputBeam):
     return computing_time;
 
 n_proteins=[20,50,100,200,500,1000,2000,5000,10000,20000];
+#n_proteins=[20];
 #n_proteins=[20000];
-n_beams=[3,15];
+n_beams=[7,40];
 
 
 path_data=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/data/";
@@ -55,12 +56,22 @@ for n in n_proteins:
     radiometries_path=protein_folder+"radiometries.tsv";
     true_ids_path=protein_folder+"true-ids.tsv";
     predictions_hybrid_path = protein_folder+"predictionsHybrid.csv"
+    predictions_knn_path = protein_folder+"predictionskNN.csv"
+
+    cmd_classify_knn = "./bin/whatprot classify nn -k 10000 -s 0.5 -P " + seq_params_path + " -T " +dye_tracks_path + " -R " + radiometries_path + " -Y " + predictions_knn_path;
+    outputknn=subprocess.check_output("export OMP_NUM_THREADS=1\n"+cmd_classify_knn, shell=True)
+    computing_time_knn=get_proc_time(outputknn)
+    knn_msg="kNN computing total time (seconds): "+ str(computing_time_knn);
+    print(str(knn_msg))
+
     cmd_classify_hybrid = "./bin/whatprot classify hybrid -k 10000 -s 0.5 -H 1000 -p 5 -P " + seq_params_path + " -S " + dye_seqs_path + " -T " +dye_tracks_path + " -R " + radiometries_path + " -Y " + predictions_hybrid_path;
     #output=subprocess.run(cmd_classify_hybrid, shell=True, check=True)
     outputHybrid=subprocess.check_output("export OMP_NUM_THREADS=1\n"+cmd_classify_hybrid, shell=True)
     computing_time_hybrid=get_proc_time(outputHybrid)
     hybrid_msg="Hybrid computing total time (seconds): "+ str(computing_time_hybrid);
     print(str(outputHybrid))
+
+
     beam_msgs=[];
     for n_beam in n_beams:
         cmd_classify_beam = "./bin/probeam " + full_path_to_ds + str(n)+"Prot/"+ " -b "+str(n_beam)
@@ -71,6 +82,8 @@ for n in n_proteins:
         print(str(outputBeam))
     with open(protein_folder+"timing-results.txt", 'w') as f:
         f.write(hybrid_msg)
+        f.write('\n')
+        f.write(knn_msg)
         f.write('\n')
         for beam_msg in beam_msgs:
             f.write(beam_msg)
