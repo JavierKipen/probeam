@@ -32,13 +32,15 @@ Finally the codes to create datasets, classify the reads and plot the results ar
 ```
 python3 scripts/DatasetGen.py %Generates all datasets for the results
 python3 scripts/DatasetClassify.py %Runs probeam and whatprot on the datasets from different numbers of proteins
-python3 scripts/Genplots.py %Processes the classifications obtained and generates the plots of the papers
 python3 scripts/ForHMMComparison.py %Runs the classifications needed to compare with the HMM (without kNN prefilter)
 
 python3 scripts/BestNbSearch.py %Different number of beans run on the 20k Prot dataset
 python3 scripts/analyzeNB.py %Generates a csv from the results
+python3 scripts/TestWhatprotsParams.py %Runs whatprot with different parameters  
+python3 scripts/ShowWhatprotParamsResults.py %Generates a csv with the results of different whatprot params
 python3 scripts/GenPlots.py %Generates the figures of the paper with the results
+
 ```
 # Reusing the code
 
-Upon use of this code for research purposes, please cite our [paper](https://www.biorxiv.org/content/10.1101/2023.07.13.548796v1).
+Upon use of this code for research purposes, please cite our [paper]([https://www.biorxiv.org/content/10.1101/2023.07.13.548796v1](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011345)https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011345).
