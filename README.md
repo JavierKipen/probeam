@@ -43,4 +43,4 @@ python3 scripts/GenPlots.py %Generates the figures of the paper with the results
 ```
 # Reusing the code
 
-Upon use of this code for research purposes, please cite our [paper]([https://www.biorxiv.org/content/10.1101/2023.07.13.548796v1](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011345)https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011345).
+Upon use of this code for research purposes, please cite our [paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1011345).
