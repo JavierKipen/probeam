@@ -488,6 +488,15 @@ vector<unsigned int> argsortf(const vector<float>& vf) { //Argsort for a float v
 }
 
 
+vector<unsigned int> argsort(const vector<unsigned int>& vf)
+{
+	vector<unsigned int> idx(vf.size());// initialize original index locations
+	iota(idx.begin(), idx.end(), 0);
+	stable_sort(idx.begin(), idx.end(),
+		[&vf](unsigned int i1, unsigned int i2) {return vf[i1] > vf[i2]; });
+	return idx;
+}
+
 
 unsigned int nChoosek(unsigned int n, unsigned int k) //https://stackoverflow.com/questions/9330915/number-of-combinations-n-choose-r-in-c
 {

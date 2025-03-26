@@ -8,7 +8,7 @@ class ArgParser
 {
 public:
 	ArgParser(int argc, char* argv[]);
-	unsigned int nBeam;
+	unsigned int nBeam,nSparsity;
 	string folder_path;
 	bool parsedCorrectly;
 	float cutoffTh;

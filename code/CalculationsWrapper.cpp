@@ -45,6 +45,8 @@ void CalculationsWrapper::init(vector<string>& dyeSeqs, vector<unsigned int>& dy
 		infosEdman.push_back(aux);
 	is.init(&dyeSeqsTogheter, &dyeSeqsStartIdxsInMem, &relProbs ,&dyeSeqsCounts, nBeam);
 
+	dyeSeqsOutProbList.reserve(20000);
+
 #ifdef ESTIMATE_IFED_TIMES
 	initMapTimeIFED();
 #endif // ESTIMATE_IFED_TIMES
@@ -223,6 +225,88 @@ pair<unsigned int, float> CalculationsWrapper::getMostProbDyeSeqIdx(vector<State
 	return output;
 }
 
+void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<float>& finalStatesLogProbs, unsigned int currNStates, vector<float>& scoresProbs, vector<unsigned int>& scoresProbsIdxs)
+{
+	float normFactor = 0;
+	unsigned int nBeam = currNStates;
+	unsigned int mostLikelyOut;
+	unsigned int nSparsity = scoresProbs.size(); //Sparsity of the output
+	float mostLikelyOutP = -1;
+	//Normalizing last state probabilities
+	for (unsigned int i = 0; i < nBeam; i++)
+	{
+		finalStatesLogProbs[i] = exp(finalStatesLogProbs[i]);
+		normFactor += finalStatesLogProbs[i];
+	}
+	for (unsigned int i = 0; i < nBeam; i++)
+		finalStatesLogProbs[i] /= normFactor; //Normalizes probabilities of states
+	//State probabilities to dye seq probabilities
+	for (unsigned int i = 0; i < nBeam; i++)
+	{
+		State& s = finalStates[i]; //Ith most probable state at the end of the observation
+		getRelProbs(s); // Computes the rel prob of each dye sequence and saves it in dyeSeqsProbRelOut;
+		for (unsigned int d_idx = 0; d_idx < s.dyeSeqsIdxsCount; d_idx++)
+		{
+			unsigned int dyeSeqIdx = s.dyeSeqsIdxs[d_idx];
+			unsigned int outDyesIdx = 0;
+			dyeSeqsOut.push_back(dyeSeqIdx);
+			dyeSeqsOutProb[dyeSeqIdx] += (finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx]);
+		}
+
+	}
+	//Remove repeated sequences
+	vector<unsigned int>::iterator ip;
+	ip = unique(dyeSeqsOut.begin(), dyeSeqsOut.end());
+	dyeSeqsOut.resize(distance(dyeSeqsOut.begin(), ip));
+
+	for (auto it = dyeSeqsOut.begin(); it < dyeSeqsOut.end();it++) //loops through dyeSeqsOut, pushes the prob of the dye sequence to the output vector2
+		dyeSeqsOutProbList.push_back(dyeSeqsOutProb[*it]);
+	
+	vector<unsigned int> idxToSort=argsortf(dyeSeqsOutProbList); //Sorts the probabilities and returns the indexes of the sorted probabilities
+	unsigned int nElemsOut = min(nSparsity, (unsigned int) idxToSort.size());
+	vector<float> auxProbs(nSparsity, 0);
+	vector<unsigned int> auxIdxs(nSparsity, 0);
+	for (unsigned int i = 0; i < nElemsOut; i++) //Copies the most likely dye sequences to the output vector. Nsparsity if there is, if not the only dye sequences present.
+	{
+		auxProbs[i]= dyeSeqsOutProbList[idxToSort[i]];
+		auxIdxs[i] = dyeSeqsIdxOUT[dyeSeqsOut[idxToSort[i]]];
+	}
+	
+	if (nElemsOut < nSparsity)
+		fillFakeScores(auxProbs, auxIdxs, nElemsOut, nSparsity); //Fills the rest of the output with fake values with prob 0
+
+	idxToSort = argsort(scoresProbsIdxs); //Sorts the indexes of the dye sequences for the output elements we have
+	for (unsigned int i = 0; i < nElemsOut; i++) //Copies the most likely dye sequences to the output vector. Nsparsity if there is, if not the only dye sequences present.
+	{
+		scoresProbs[i] = auxProbs[idxToSort[i]];
+		scoresProbsIdxs[i] = auxIdxs[idxToSort[i]];
+	}
+}
+
+void  CalculationsWrapper::fillFakeScores(vector<float> &auxProbs, vector<unsigned int> &auxIds, unsigned int nElemensOut, unsigned int nSparsity)
+{
+	unsigned int currScoreIdToUse = 0;
+	unsigned int currIdxArrays = nElemensOut;
+	while (currIdxArrays < nSparsity) //We continue filling until we reach the end of the output
+	{
+		bool ScoreIdFound = false;
+		for(unsigned int i=0;i<nElemensOut;i++) //We check if the current score id is already in the output
+		{
+			if(auxIds[i] == currScoreIdToUse)
+			{
+				ScoreIdFound = true;
+				break;
+			}
+		}
+		if (!ScoreIdFound) //When it was not present, we fill a fake output with that ID, so there is no score id repetition!
+		{
+			auxProbs[currIdxArrays] = 0;
+			auxIds[currIdxArrays] = currScoreIdToUse;
+			currIdxArrays++;
+		}
+		currScoreIdToUse++;
+	}
+}
 void  CalculationsWrapper::getRelProbs(State& s)
 {
 	float normFactor=0;
@@ -291,7 +375,7 @@ void CalculationsWrapper::clear()
 {
 	is.clear();
 	dyeSeqsOut.clear(); //Vector to calculate the final peptide probs
-
+	dyeSeqsOutProbList.clear();
 }
 
 

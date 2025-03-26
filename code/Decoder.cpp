@@ -46,7 +46,7 @@ void Decoder::init(vector<string> dyeSeqs, vector<unsigned int> dyeSeqsIdx, vect
 	prevStateIndex.reserve(N_CAND_STATE_RESERVE); //Index that says from which state was generated, to recover dyeseqs information
 }
 
-pair<unsigned int, float> Decoder::decode(float rad[N_FEATURES_PER_COL][N_COLORS])
+void Decoder::decode(float rad[N_FEATURES_PER_COL][N_COLORS], vector<float> &scoresProbs, vector<unsigned int> &scoresProbsIdxs)
 {
 	cw.getFirstMostLikelyStates(&(mostLikelyStates[0]), &(mostLikelyStatesProbNorm[0]), rad[0]);
 	for (currT = 1; currT < N_FEATURES_PER_COL; currT++)
@@ -59,10 +59,12 @@ pair<unsigned int, float> Decoder::decode(float rad[N_FEATURES_PER_COL][N_COLORS
 		currT = N_FEATURES_PER_COL - 1;
 	if (noNextStates) //When no states were longer found, uses the previous best states to predict the peptide.
 		currT--;
-	pair<unsigned int, float> retVal = getMostProbDyeSeqIdx();
-	
+
+	//pair<unsigned int, float> retVal = getMostProbDyeSeqIdx();
+	//Gets the most likely scores, ordered by index and filled if nSparsity was bigger than the Score ids picked!
+	cw.getMostProbDyeSeqs(mostLikelyStates[currT], mostLikelyStatesProbNorm[currT], currNStates, scoresProbs, scoresProbsIdxs);
+
 	clear();
-	return retVal;
 }
 
 void Decoder::recursion(float obs[N_COLORS])
@@ -222,6 +224,7 @@ pair<unsigned int, float> Decoder::getMostProbDyeSeqIdx()
 {
 	return cw.getMostProbDyeSeqIdx(mostLikelyStates[currT], mostLikelyStatesProbNorm[currT], currNStates);
 }
+
 
 void Decoder::appendCandidateState(StateRed* s, float prob, unsigned int idxPrev, unsigned int posNextKIndex)
 {

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-
+vector<unsigned int> argsort(const vector<unsigned int>& vf);
 vector<unsigned int> argsortf(const vector<float>& vf);
 unsigned int nChoosek(unsigned int n, unsigned int k);
 void highestKValsInArray(float* array, unsigned long n, unsigned int k, unsigned long* outBestIdx);

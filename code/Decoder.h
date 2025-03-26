@@ -14,13 +14,13 @@ class Decoder
 {
 
 public:
-	Decoder();
+	Decoder(); //Default constructor
 	Decoder(unsigned int nBeam);
 	Decoder(unsigned int nBeam, float cutoffTh);
 	
 	unsigned int nBeam;
 	void init(vector<string> dyeSeqs, vector<unsigned int> dyeSeqsIdx, vector<unsigned int> relCounts); //Initializes internal variables
-	pair<unsigned int, float> decode(float rad[N_FEATURES_PER_COL][N_COLORS]); //Decodes a given read. Returns id of dye sequence and probability
+	void decode(float rad[N_FEATURES_PER_COL][N_COLORS], vector<float> &scoresProbs, vector<unsigned int> &scoresProbsIdxs); //Decodes a given read. Returns in the vectors the most likely scores and their Ids. Fills with 0s and reasonable Ids, and IDS are ordered!
 	CalculationsWrapper cw;
 private:
 	unsigned int currT,currNStates;
@@ -29,6 +29,7 @@ private:
 	array<unsigned int, N_COLORS> currBestK; //The most likely K for a Xt, used in the transitions.
 	vector<array<unsigned int, N_COLORS>> PosNextKs; //Ks where next states can finish.
 	vector<float> PosNextKsObsProbLog; //Ks where next states can finish.
+
 	bool earlyFinish();
 	void getPosNextK(float obs[N_COLORS]);
 	void getBestKObs(float obs[N_COLORS]);

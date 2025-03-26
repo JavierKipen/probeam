@@ -11,11 +11,24 @@ DataIO::DataIO(string folderPath)
 	dyeSeqsPath = folderPath + "dye-seqs.tsv";
 	dataPath = folderPath + "radiometries.tsv";
 	trueLabelsPath = folderPath + "true-ids.tsv";
+	scoresProbPath= folderPath + "TopNScores.bin";
+	scoreIdsPath = folderPath + "TopNScoresIds.tsv";
 	basePath = folderPath ;
-	//trueIDs.reserve(10000); //Usually datasets will have around 10k reads
-	//trueIDs.reserve(10000); //Usually datasets will have around 10k reads
 	getDyeSeqsInfo();
 	initOk = true; //Should check that everything exists.
+	scoresProbFile.open( scoresProbPath, std::ios::binary | std::ios::trunc);
+	scoresIdsFile.open(scoreIdsPath, std::ios::binary | std::ios::trunc);
+	if (!scoresProbFile.is_open() || !scoresIdsFile.is_open())
+	{
+		cout << "Error opening scores files";
+		initOk = false;
+	}
+}
+
+DataIO::~DataIO()
+{
+	scoresIdsFile.close();
+	scoresProbFile.close();
 }
 
 void DataIO::getDyeSeqsInfo(void)
@@ -94,6 +107,12 @@ void DataIO::loadReads(void)
 			trueIDsFile.close();
 		}
 	}
+}
+
+void DataIO::pushScores(vector<unsigned int> &scoresIdxs, vector<float> &scoresProbs)
+{
+	scoresProbFile.write(reinterpret_cast<const char*>(scoresProbs.data()), scoresProbs.size() * sizeof(float));
+	scoresIdsFile.write(reinterpret_cast<const char*>(scoresIdxs.data()), scoresIdxs.size() * sizeof(unsigned int));
 }
 
 void DataIO::loadReads(unsigned int limit)

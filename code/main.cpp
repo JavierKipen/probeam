@@ -12,7 +12,7 @@ using namespace std;
 void checkOnlyOneRead(Decoder &dec);
 void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red);
 void checkWholeDataset(Decoder& dec, DataIO &dataIO);
-void timeRunAndSave(Decoder& dec, DataIO& dataIO);
+void timeRunAndSave(Decoder& dec, DataIO& dataIO, unsigned int nSparsity);
 
 void getAcc(float* dyeSeqAcc, float* pepAcc, vector<unsigned int>& yPred, vector<unsigned int>& yTrue, map<unsigned int, unsigned int> &dyeSeqsCountsMap);
 
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 		{
 			Decoder decoder(argParser.nBeam,argParser.cutoffTh);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
-			timeRunAndSave(decoder, dataIO);
+			timeRunAndSave(decoder, dataIO, argParser.nSparsity);
 			//checkReducedData(decoder, dataIO, 5000);
 			//checkWholeDataset(decoder, dataIO);
 		}
@@ -65,14 +65,18 @@ void checkOnlyOneRead(Decoder& dec)
 	 rad[8][0] = 5;     rad[8][1] = -7.3;  rad[8][2] = -3.72;
 	 rad[9][0] = 46.07; rad[9][1] = 8.9; rad[9][2] = -7.4;
 	 auto start = chrono::high_resolution_clock::now();
-	 pair<unsigned int, float> auxRes;
-	 auxRes = dec.decode(rad);
+	 unsigned int nSparsity = 100;
+	 vector<unsigned int> scoresIdxs(nSparsity, 0);
+	 vector<float> scoresProbs(nSparsity, 0);
+	 dec.decode(rad, scoresProbs, scoresIdxs);
 	 auto stop = chrono::high_resolution_clock::now();
 	 auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
 	 cout << "Time Decoding one read: "
 		 << duration.count() << " microseconds" << endl; //https://www.geeksforgeeks.org/measure-execution-time-function-cpp/
-	 cout << to_string(auxRes.first);
+	 
 }
+
+/*
 void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 {
 	unsigned int reduced = red;
@@ -103,6 +107,7 @@ void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 	//dataIO.savePredictions(folder_path + "BeamSearchPred10.csv", yPred, yPredProb);
 	
 }
+
 void checkWholeDataset(Decoder& dec, DataIO& dataIO )
 {
 	dataIO.loadReads();
@@ -129,28 +134,21 @@ void checkWholeDataset(Decoder& dec, DataIO& dataIO )
 		<< duration.count() / dataIO.reads.size() << " microseconds" << endl;
 	//dataIO.savePredictions(folder_path + "BeamSearchPred.csv", yPred, yPredProb);
 }
-
-void timeRunAndSave(Decoder& dec, DataIO& dataIO)
+*/
+void timeRunAndSave(Decoder& dec, DataIO& dataIO,unsigned int nSparsity)
 {
 	dataIO.loadReads();
-	vector<unsigned int> yPred;
-	vector<float> yPredProb;
-	yPred.reserve(dataIO.reads.size());
-	yPredProb.reserve(dataIO.reads.size());
-	pair<unsigned int, float> auxRes;
+	vector<unsigned int> scoresIdxs(nSparsity,0);
+	vector<float> scoresProbs(nSparsity, 0);
 	auto start = chrono::high_resolution_clock::now();
 	for (unsigned int i = 0; i < dataIO.reads.size(); i++)
 	{
-		//if (i % 10 == 0)
-		//	cout << i << endl; //1870 explodes
-		auxRes = dec.decode((float(*)[3])dataIO.reads[i].data());
-		yPred.push_back(auxRes.first);
-		yPredProb.push_back(auxRes.second);
+		dec.decode((float(*)[3])dataIO.reads[i].data(), scoresProbs, scoresIdxs);
+		dataIO.pushScores(scoresIdxs, scoresProbs);
 	}
 	auto stop = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
 	cout << "Time Decoding one read: " << (float)duration.count() / (float)dataIO.reads.size() << " microseconds" << endl;
-	dataIO.savePredictions(dataIO.basePath + "BeamSearchPred"+ to_string(dec.nBeam)+".csv", yPred, yPredProb);
 }
 
 

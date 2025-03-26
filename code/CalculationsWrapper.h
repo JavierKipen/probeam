@@ -22,6 +22,7 @@ public:
 	//void getObsLogProbs(vector<float>* outLogProbs, vector<StateRed>& auxStates, float obs[N_COLORS]);
 	void getInfoForEdman(vector<State>& s, unsigned int nStates);
 	pair<unsigned int, float> getMostProbDyeSeqIdx(vector<State>& finalStates, vector<float>& finalStatesLogProbs, unsigned int currNStates);
+	void getMostProbDyeSeqs(vector<State>& finalStates, vector<float>& finalStatesLogProbs, unsigned int currNStates, vector<float>& scoresProbs, vector<unsigned int>& scoresProbsIdxs);
 	vector<array<unsigned int, N_COLORS>> KDyeLoss; //Ks to try in the transition;
 	vector<float> KProbsDyeLoss; //Probs of Ks to try in the transition;
 	string internalDyeSeqIdToStr(unsigned int id);
@@ -34,7 +35,7 @@ private:
 	map<array<unsigned int, N_COLORS>, float> IFEDTimeOfState;
 	void initMapTimeIFED();
 	array<unsigned int, N_COLORS> getStateOriginalN(State& s);
-	
+	void fillFakeScores(vector<float> &auxProbs, vector<unsigned int> &auxIds, unsigned int nElemensOut, unsigned int nSparsity);
 
 	float n_peptides;
 	InitStates is; // To obtain the most likely first states.
@@ -48,7 +49,9 @@ private:
 	vector<unsigned int> dyeSeqsCounts;
 	
 	vector<unsigned int> dyeSeqsOut; //Vector to calculate the final peptide probs
-	vector<float> dyeSeqsOutProb;
+	vector<float> dyeSeqsOutProb; //Vector to calculate the final peptide probs efficiently
+	vector<float> dyeSeqsOutProbList;
+
 	float dyeSeqsProbRelOut[N_MAX_DYESEQS_IN_STATE]; //Variables for decoding most likely output
 	unsigned int dyeSeqsProbRelOutCount;
 	void getRelProbs(State& s);
