@@ -26,9 +26,10 @@ int main(int argc, char* argv[])
 		{
 			Decoder decoder(argParser.nBeam,argParser.cutoffTh);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
-			timeRunAndSave(decoder, dataIO, argParser.nSparsity);
-			//checkReducedData(decoder, dataIO, 5000);
+			//timeRunAndSave(decoder, dataIO, argParser.nSparsity);
+			checkReducedData(decoder, dataIO, 1000);
 			//checkWholeDataset(decoder, dataIO);
+			//checkOnlyOneRead(decoder);
 		}
 		else
 			cout << "Error generating model";
@@ -76,38 +77,29 @@ void checkOnlyOneRead(Decoder& dec)
 	 
 }
 
-/*
+
 void checkReducedData(Decoder& dec, DataIO &dataIO,unsigned int red)
 {
 	unsigned int reduced = red;
 	dataIO.loadReads(reduced);
-	vector<unsigned int> yPred;
-	vector<float> yPredProb;
-	yPred.reserve(dataIO.reads.size());
-	yPredProb.reserve(dataIO.reads.size());
+	unsigned int nSparsity = 100;
+	vector<unsigned int> scoresIdxs(nSparsity, 0);
+	vector<float> scoresProbs(nSparsity, 0);
 	pair<unsigned int, float> auxRes;
 	auto start = chrono::high_resolution_clock::now();
 	for (unsigned int i = 0; i < reduced; i++)
 	{
-		auxRes = dec.decode((float(*)[3])dataIO.reads[i].data());
- 		//auxRes = dec.decode((float(*)[3])dataIO.reads[808].data());
-		yPred.push_back(auxRes.first);
-		yPredProb.push_back(auxRes.second);
+		dec.decode((float(*)[3])dataIO.reads[i].data(), scoresProbs, scoresIdxs);
+		dataIO.pushScores(scoresIdxs, scoresProbs);
 	}
 	auto stop = chrono::high_resolution_clock::now();
-	//Now veryifing accuracy
-	float dyeSeqAcc, pepAcc;
-	dataIO.createMap();
-	//dec.cw.orderCompTimesIFED();
-	getAcc(&dyeSeqAcc, &pepAcc, yPred, dataIO.trueIDs, dataIO.dyeSeqsCountsMap);
-	cout << "Peptide accuracy: " + to_string(pepAcc) + " - Dye sequence accuracy: " + to_string(dyeSeqAcc) << endl;
 	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
 	cout << "Time Decoding one read: "
 		<< duration.count() / reduced << " microseconds" << endl;
 	//dataIO.savePredictions(folder_path + "BeamSearchPred10.csv", yPred, yPredProb);
 	
 }
-
+/*
 void checkWholeDataset(Decoder& dec, DataIO& dataIO )
 {
 	dataIO.loadReads();

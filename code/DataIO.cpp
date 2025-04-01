@@ -12,7 +12,7 @@ DataIO::DataIO(string folderPath)
 	dataPath = folderPath + "radiometries.tsv";
 	trueLabelsPath = folderPath + "true-ids.tsv";
 	scoresProbPath= folderPath + "TopNScores.bin";
-	scoreIdsPath = folderPath + "TopNScoresIds.tsv";
+	scoreIdsPath = folderPath + "TopNScoresIds.bin";
 	basePath = folderPath ;
 	getDyeSeqsInfo();
 	initOk = true; //Should check that everything exists.

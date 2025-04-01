@@ -6,6 +6,7 @@
 #include "StateFunctions.h"
 #include <cmath>    
 #include <chrono>
+#include <set>
 
 #define DYE_BY_MEM_IDX(i) (dyeSeqsTogheter[dyeSeqsStartIdxsInMem[(i)]])
 #define L1NORM_MAX 5
@@ -232,6 +233,7 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 	unsigned int mostLikelyOut;
 	unsigned int nSparsity = scoresProbs.size(); //Sparsity of the output
 	float mostLikelyOutP = -1;
+
 	//Normalizing last state probabilities
 	for (unsigned int i = 0; i < nBeam; i++)
 	{
@@ -249,18 +251,18 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 		{
 			unsigned int dyeSeqIdx = s.dyeSeqsIdxs[d_idx];
 			unsigned int outDyesIdx = 0;
-			dyeSeqsOut.push_back(dyeSeqIdx);
+			dyeSeqsOutSet.insert(dyeSeqIdx);
 			dyeSeqsOutProb[dyeSeqIdx] += (finalStatesLogProbs[i] * dyeSeqsProbRelOut[d_idx]);
 		}
 
 	}
 	//Remove repeated sequences
-	vector<unsigned int>::iterator ip;
-	ip = unique(dyeSeqsOut.begin(), dyeSeqsOut.end());
-	dyeSeqsOut.resize(distance(dyeSeqsOut.begin(), ip));
 
-	for (auto it = dyeSeqsOut.begin(); it < dyeSeqsOut.end();it++) //loops through dyeSeqsOut, pushes the prob of the dye sequence to the output vector2
+	for (auto it = dyeSeqsOutSet.begin(); it != dyeSeqsOutSet.end(); it++) //loops through dyeSeqsOut, pushes the prob of the dye sequence to the output vector2
+	{
 		dyeSeqsOutProbList.push_back(dyeSeqsOutProb[*it]);
+		dyeSeqsOut.push_back(*it); //Pushes from set to list!
+	}
 	
 	vector<unsigned int> idxToSort=argsortf(dyeSeqsOutProbList); //Sorts the probabilities and returns the indexes of the sorted probabilities
 	unsigned int nElemsOut = min(nSparsity, (unsigned int) idxToSort.size());
@@ -275,7 +277,7 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 	if (nElemsOut < nSparsity)
 		fillFakeScores(auxProbs, auxIdxs, nElemsOut, nSparsity); //Fills the rest of the output with fake values with prob 0
 
-	idxToSort = argsort(scoresProbsIdxs); //Sorts the indexes of the dye sequences for the output elements we have
+	idxToSort = argsort(auxIdxs); //Sorts the indexes of the dye sequences for the output elements we have
 	for (unsigned int i = 0; i < nElemsOut; i++) //Copies the most likely dye sequences to the output vector. Nsparsity if there is, if not the only dye sequences present.
 	{
 		scoresProbs[i] = auxProbs[idxToSort[i]];
@@ -376,6 +378,7 @@ void CalculationsWrapper::clear()
 	is.clear();
 	dyeSeqsOut.clear(); //Vector to calculate the final peptide probs
 	dyeSeqsOutProbList.clear();
+	dyeSeqsOutSet.clear();
 }
 
 

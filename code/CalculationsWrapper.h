@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include <set>
 #include "InfoForEdmanDegradation.h"
 #include "InitStates.h"
 
@@ -49,6 +50,7 @@ private:
 	vector<unsigned int> dyeSeqsCounts;
 	
 	vector<unsigned int> dyeSeqsOut; //Vector to calculate the final peptide probs
+	set<unsigned int> dyeSeqsOutSet;
 	vector<float> dyeSeqsOutProb; //Vector to calculate the final peptide probs efficiently
 	vector<float> dyeSeqsOutProbList;
 
