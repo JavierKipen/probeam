@@ -262,6 +262,7 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 	{
 		dyeSeqsOutProbList.push_back(dyeSeqsOutProb[*it]);
 		dyeSeqsOut.push_back(*it); //Pushes from set to list!
+		dyeSeqsOutProb[*it] = 0; //Resets output var
 	}
 	
 	vector<unsigned int> idxToSort=argsortf(dyeSeqsOutProbList); //Sorts the probabilities and returns the indexes of the sorted probabilities
@@ -278,11 +279,20 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 		fillFakeScores(auxProbs, auxIdxs, nElemsOut, nSparsity); //Fills the rest of the output with fake values with prob 0
 
 	idxToSort = argsort(auxIdxs); //Sorts the indexes of the dye sequences for the output elements we have
-	for (unsigned int i = 0; i < nElemsOut; i++) //Copies the most likely dye sequences to the output vector. Nsparsity if there is, if not the only dye sequences present.
+	for (unsigned int i = 0; i < nSparsity; i++) //Copies the most likely dye sequences to the output vector. Nsparsity if there is, if not the only dye sequences present.
 	{
 		scoresProbs[i] = auxProbs[idxToSort[i]];
 		scoresProbsIdxs[i] = auxIdxs[idxToSort[i]];
 	}
+	/* //Output format check
+	for (unsigned int i = 1; i < nSparsity; i++)
+	{
+		if (scoresProbsIdxs[i] <= scoresProbsIdxs[i - 1]) //If the dye sequence is equal or lower to the previous,
+			cout << "This shouldnt happen";
+		if (scoresProbsIdxs[i] == int(n_peptides)) //If the dye sequence is equal or lower to the previous,
+			cout << "This shouldnt happen";
+	}*/
+
 }
 
 void  CalculationsWrapper::fillFakeScores(vector<float> &auxProbs, vector<unsigned int> &auxIds, unsigned int nElemensOut, unsigned int nSparsity)
