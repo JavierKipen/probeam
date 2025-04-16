@@ -26,8 +26,8 @@ int main(int argc, char* argv[])
 		{
 			Decoder decoder(argParser.nBeam,argParser.cutoffTh);
 			decoder.init(dataIO.dyeSeqs, dataIO.dyeSeqsIdxs, dataIO.dyeSeqsCounts);
-			//timeRunAndSave(decoder, dataIO, argParser.nSparsity);
-			checkReducedData(decoder, dataIO, 1000);
+			timeRunAndSave(decoder, dataIO, argParser.nSparsity);
+			//checkReducedData(decoder, dataIO, 1000);
 			//checkWholeDataset(decoder, dataIO);
 			//checkOnlyOneRead(decoder);
 		}

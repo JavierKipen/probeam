@@ -5,8 +5,10 @@
 
 //#define DEF_PATH "C:/Users/JK-WORK/Documents/modifWhatprot/Own/HMM_modif/Datasets/ForPaper/20000Prot/"
 
-#define DEF_PATH "C:/Users/JK-WORK/Desktop/DatasetsProtInf/20642_Prot/whatprot/"
-#define DEF_SPARSITY 100
+//#define DEF_PATH "C:/Users/JK-WORK/Desktop/DatasetsProtInf/20642_Prot/whatprot/"
+
+#define DEF_PATH "/raid/jkipen/ProtInfGPU/data/WhatprotGen/WholeProteomeTests/NoBlockageBetterRates/"
+#define DEF_SPARSITY 1000
 
 ArgParser::ArgParser(int argc, char* argv[])
 {

@@ -257,13 +257,17 @@ void CalculationsWrapper::getMostProbDyeSeqs(vector<State>& finalStates, vector<
 
 	}
 	//Remove repeated sequences
-
+    float norm=0;
 	for (auto it = dyeSeqsOutSet.begin(); it != dyeSeqsOutSet.end(); it++) //loops through dyeSeqsOut, pushes the prob of the dye sequence to the output vector2
 	{
 		dyeSeqsOutProbList.push_back(dyeSeqsOutProb[*it]);
 		dyeSeqsOut.push_back(*it); //Pushes from set to list!
 		dyeSeqsOutProb[*it] = 0; //Resets output var
+        norm += dyeSeqsOutProb[*it];
 	}
+    if(norm>1) //If probs sum more than 1 because of computing errors, rescales!
+        for(auto it = dyeSeqsOutProbList.begin(); it != dyeSeqsOutProbList.end(); it++)
+            (*it) = (*it)/norm;
 	
 	vector<unsigned int> idxToSort=argsortf(dyeSeqsOutProbList); //Sorts the probabilities and returns the indexes of the sorted probabilities
 	unsigned int nElemsOut = min(nSparsity, (unsigned int) idxToSort.size());
